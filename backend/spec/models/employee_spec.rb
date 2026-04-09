@@ -94,4 +94,65 @@ RSpec.describe Employee, type: :model do
       expect(employee.errors[:last_salary_review_date]).to be_empty
     end
   end
+
+  describe ".not_deleted" do
+    it "returns only records with deleted_at as nil" do
+      active_employee = create(:employee, deleted_at: nil)
+      create(:employee, deleted_at: 1.day.ago)
+
+      expect(described_class.not_deleted).to contain_exactly(active_employee)
+    end
+
+    it "returns no records when all employees are soft-deleted" do
+      create(:employee, deleted_at: 1.day.ago)
+      create(:employee, deleted_at: 2.days.ago)
+
+      expect(described_class.not_deleted).to be_empty
+    end
+
+    it "does not filter by employment status" do
+      inactive_employee = create(:employee, status: "inactive", deleted_at: nil)
+      terminated_employee = create(:employee, status: "terminated", deleted_at: nil)
+      create(:employee, status: "active", deleted_at: 1.day.ago)
+
+      expect(described_class.not_deleted).to contain_exactly(inactive_employee, terminated_employee)
+    end
+  end
+
+  describe ".active" do
+    it "returns only employees with active status" do
+      active_employee = create(:employee, status: "active")
+      create(:employee, status: "inactive")
+
+      expect(described_class.active).to contain_exactly(active_employee)
+    end
+
+    it "includes soft-deleted records unless not_deleted is chained" do
+      visible_active_employee = create(:employee, status: "active", deleted_at: nil)
+      soft_deleted_active_employee = create(:employee, status: "active", deleted_at: 1.day.ago)
+
+      expect(described_class.active).to contain_exactly(visible_active_employee, soft_deleted_active_employee)
+      expect(described_class.active.not_deleted).to contain_exactly(visible_active_employee)
+    end
+  end
+
+  describe "#soft_delete!" do
+    it "sets deleted_at timestamp on the record" do
+      employee = create(:employee, deleted_at: nil)
+
+      expect { employee.soft_delete! }
+        .to change { employee.reload.deleted_at }.from(nil)
+    end
+
+    it "is idempotent once deleted_at is set" do
+      employee = create(:employee, deleted_at: nil)
+
+      employee.soft_delete!
+      first_deleted_at = employee.reload.deleted_at
+
+      employee.soft_delete!
+
+      expect(employee.reload.deleted_at).to eq(first_deleted_at)
+    end
+  end
 end

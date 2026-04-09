@@ -4,6 +4,8 @@ class Employee < ApplicationRecord
   enum :employment_type, { full_time: "full_time", part_time: "part_time", contractor: "contractor" }
   enum :status, { active: "active", inactive: "inactive", terminated: "terminated" }
 
+  scope :not_deleted, -> { where(deleted_at: nil) }
+
   validates :employee_code, presence: true, length: { maximum: 32 }, format: { with: /\AEMP-[0-9]{4,}\z/ }, uniqueness: true
   validates :full_name, presence: true, length: { minimum: 2, maximum: 120 }
   validates :job_title, presence: true, length: { minimum: 2, maximum: 120 }
@@ -17,6 +19,12 @@ class Employee < ApplicationRecord
   validate :effective_from_cannot_be_in_future
   validate :hire_date_cannot_be_in_future
   validate :last_salary_review_date_cannot_be_before_hire_date
+
+  def soft_delete!
+    return if deleted_at.present?
+
+    update!(deleted_at: Time.current)
+  end
 
   private
 
