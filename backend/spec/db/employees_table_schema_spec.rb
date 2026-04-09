@@ -7,68 +7,69 @@ RSpec.describe "employees table schema" do
 
     connection.columns(:employees).map(&:name)
   end
+  let(:employee_indexes) do
+    next [] unless connection.table_exists?(:employees)
+
+    connection.indexes(:employees)
+  end
+
+  def index_with_columns(columns)
+    employee_indexes.find { |index| index.columns == columns }
+  end
 
   it "creates the employees table" do
     expect(connection.table_exists?(:employees)).to be(true)
   end
 
-  it "includes employee_code" do
-    expect(employee_column_names).to include("employee_code")
+  %w[
+    employee_code
+    full_name
+    job_title
+    department
+    country_code
+    salary_cents
+    employment_type
+    status
+    effective_from
+    hire_date
+    last_salary_review_date
+    deleted_at
+    created_at
+    updated_at
+  ].each do |column_name|
+    it "includes #{column_name}" do
+      expect(employee_column_names).to include(column_name)
+    end
   end
 
-  it "includes full_name" do
-    expect(employee_column_names).to include("full_name")
+  it "has a unique index on employee_code" do
+    index = index_with_columns([ "employee_code" ])
+
+    expect(index).to be_present
+    expect(index.unique).to be(true)
   end
 
-  it "includes job_title" do
-    expect(employee_column_names).to include("job_title")
+  it "has an index on country_code" do
+    expect(index_with_columns([ "country_code" ])).to be_present
   end
 
-  it "includes department" do
-    expect(employee_column_names).to include("department")
+  it "has an index on job_title" do
+    expect(index_with_columns([ "job_title" ])).to be_present
   end
 
-  it "includes country_code" do
-    expect(employee_column_names).to include("country_code")
+  it "has an index on status" do
+    expect(index_with_columns([ "status" ])).to be_present
   end
 
-  it "includes currency_code" do
-    expect(employee_column_names).to include("currency_code")
+  it "has a composite index on country_code and job_title" do
+    expect(index_with_columns([ "country_code", "job_title" ])).to be_present
   end
 
-  it "includes salary_amount" do
-    expect(employee_column_names).to include("salary_amount")
+  it "has a composite index on country_code and salary_cents" do
+    expect(index_with_columns([ "country_code", "salary_cents" ])).to be_present
   end
 
-  it "includes employment_type" do
-    expect(employee_column_names).to include("employment_type")
-  end
-
-  it "includes status" do
-    expect(employee_column_names).to include("status")
-  end
-
-  it "includes effective_from" do
-    expect(employee_column_names).to include("effective_from")
-  end
-
-  it "includes hire_date" do
-    expect(employee_column_names).to include("hire_date")
-  end
-
-  it "includes last_salary_review_date" do
-    expect(employee_column_names).to include("last_salary_review_date")
-  end
-
-  it "includes deleted_at" do
-    expect(employee_column_names).to include("deleted_at")
-  end
-
-  it "includes created_at" do
-    expect(employee_column_names).to include("created_at")
-  end
-
-  it "includes updated_at" do
-    expect(employee_column_names).to include("updated_at")
+  it "has an index on deleted_at" do
+    expect(index_with_columns([ "deleted_at" ])).to be_present
   end
 end
