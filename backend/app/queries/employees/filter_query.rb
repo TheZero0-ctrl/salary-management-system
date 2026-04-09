@@ -1,0 +1,79 @@
+# frozen_string_literal: true
+
+module Employees
+  class FilterQuery < ApplicationQuery
+    SORT_FIELDS = {
+      "id" => :id,
+      "full_name" => :full_name,
+      "employee_code" => :employee_code,
+      "country_code" => :country_code,
+      "status" => :status,
+      "salary_cents" => :salary_cents
+    }.freeze
+    SORT_DIRECTIONS = %w[asc desc].freeze
+
+    def self.call(params = {})
+      new(nil, params).call
+    end
+
+    def initialize(relation = nil, params = {})
+      super(relation)
+      @params = params.to_h.with_indifferent_access
+    end
+
+    def call
+      result = @relation
+      result = apply_filters(result)
+      result = apply_term_filter(result)
+      result = apply_sort(result)
+      apply_pagination(result)
+    end
+
+    private
+
+    def default_relation
+      Employee.not_deleted
+    end
+
+    def apply_filters(scope)
+      scope = scope.where(country_code: @params[:country_code]) if @params[:country_code].present?
+      scope = scope.where(status: @params[:status]) if @params[:status].present?
+      scope = scope.where("employees.salary_cents >= ?", @params[:salary_min]) if @params[:salary_min].present?
+      scope = scope.where("employees.salary_cents <= ?", @params[:salary_max]) if @params[:salary_max].present?
+      scope
+    end
+
+    def apply_term_filter(scope)
+      term = @params[:term]
+      return scope if term.blank?
+
+      search_term = "%#{Employee.sanitize_sql_like(term.to_s.strip)}%"
+      scope.where(
+        "employees.full_name ILIKE :term OR employees.employee_code ILIKE :term",
+        term: search_term
+      )
+    end
+
+    def apply_sort(scope)
+      column = SORT_FIELDS[@params[:sort_by].to_s]
+      return scope.order(id: :asc) if column.blank?
+
+      direction = @params[:sort_direction].to_s.downcase
+      direction = "asc" unless SORT_DIRECTIONS.include?(direction)
+
+      scope.order(column => direction.to_sym).order(id: :asc)
+    end
+
+    def apply_pagination(scope)
+      return scope unless @params[:page].present? || @params[:per_page].present?
+
+      pagy = Pagy::Offset.new(
+        count: scope.count,
+        page: [ @params[:page].to_i, 1 ].max,
+        limit: [ @params[:per_page].to_i, 10 ].max
+      )
+
+      pagy.records(scope)
+    end
+  end
+end

@@ -42,3 +42,14 @@
 
 ### REFACTOR
 - Renamed soft-delete scope from `.active` to `.not_deleted` to avoid enum scope conflict.
+
+## Step 4 - feat(backend): add employees filter query object
+
+### RED (tests first)
+- Added query specs in `backend/spec/queries/employees/filter_query_spec.rb` for visibility, filters, search, sorting, and pagination behavior.
+
+### GREEN (minimum implementation)
+- Added `backend/app/queries/employees/filter_query.rb` to implement filtering/search/sort/pagination with deterministic ordering.
+
+### REFACTOR
+- Aligned query structure with `ApplicationQuery` pattern by adding `backend/app/queries/application_query.rb` and updating `Employees::FilterQuery` to use it.
