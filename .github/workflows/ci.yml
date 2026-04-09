@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/backend/Gemfile
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Resolve Ruby version
+        id: ruby-version
+        run: |
+          VERSION=$(tr -d '[:space:]' < backend/.ruby-version)
+          VERSION=${VERSION#ruby-}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: ruby/setup-ruby@319994f95fa847cf3fb3cd3dbe89f6dcde9f178f # v1.295.0
+        with:
+          ruby-version: ${{ steps.ruby-version.outputs.version }}
+          bundler-cache: true
+
+      - name: Gem audit
+        working-directory: backend
+        run: bin/bundler-audit check --update
+
+      - name: Brakeman audit
+        working-directory: backend
+        run: bundle exec brakeman --quiet --no-pager --exit-on-warn --exit-on-error
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/backend/Gemfile
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Resolve Ruby version
+        id: ruby-version
+        run: |
+          VERSION=$(tr -d '[:space:]' < backend/.ruby-version)
+          VERSION=${VERSION#ruby-}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: ruby/setup-ruby@319994f95fa847cf3fb3cd3dbe89f6dcde9f178f # v1.295.0
+        with:
+          ruby-version: ${{ steps.ruby-version.outputs.version }}
+          bundler-cache: true
+
+      - name: Lint code for consistent style
+        working-directory: backend
+        run: bin/rubocop
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/backend/Gemfile
+      RAILS_ENV: test
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: backend_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d backend_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev libvips
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Resolve Ruby version
+        id: ruby-version
+        run: |
+          VERSION=$(tr -d '[:space:]' < backend/.ruby-version)
+          VERSION=${VERSION#ruby-}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: ruby/setup-ruby@319994f95fa847cf3fb3cd3dbe89f6dcde9f178f # v1.295.0
+        with:
+          ruby-version: ${{ steps.ruby-version.outputs.version }}
+          bundler-cache: true
+
+      - name: Run backend tests
+        working-directory: backend
+        run: bin/rails db:prepare && bundle exec rspec
+
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run frontend build
+        working-directory: frontend
+        run: npm run build
