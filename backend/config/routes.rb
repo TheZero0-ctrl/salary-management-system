@@ -18,6 +18,7 @@ Rails.application.routes.draw do
 
       namespace :insights do
         get :countries, to: "countries#index"
+        get :segments, to: "segments#index"
       end
     end
   end

@@ -291,3 +291,31 @@
 - Removed thin wrapper service `backend/app/services/insights/countries_salary_summary.rb` after switching to direct query-object usage in controller.
 - Kept controller focused on auth/validation/rendering while query object handles DB aggregation.
 - Verified the full suite after contract/performance updates (`121` examples passing).
+
+## Step 15 - feat(backend): add segment salary insights endpoint with percentile metrics
+
+### RED (tests first)
+- Added request specs in `backend/spec/requests/api/v1/insights/segments_spec.rb` for:
+  - `401` when unauthenticated
+  - `403` for authenticated non-`hr_manager`
+  - `422` for missing/invalid `country_code`
+  - `422` for missing `job_title`
+  - `200` with `data.min/max/avg/median/p25/p75/p90/count/computed_at` for authenticated `hr_manager`
+  - aggregate filtering behavior (only non-deleted + exact `country_code` and `job_title`)
+  - empty-result contract with nil metrics and `count: 0`
+
+### GREEN (minimum implementation)
+- Added insights segments route and endpoint implementation:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/insights/segments_controller.rb`
+- Added dedicated aggregation query object for segment percentiles:
+  - `backend/app/queries/insights/segments_metrics_query.rb`
+- Added policy alias for endpoint authorization:
+  - `backend/app/policies/employee_policy.rb` (`segments_insights?`)
+
+### REFACTOR
+- Reduced validation duplication between insights controllers by extracting shared country-code validation and validation-error rendering into:
+  - `backend/app/controllers/api/v1/insights/base_controller.rb`
+- Updated both insights controllers to reuse the shared validation helpers:
+  - `backend/app/controllers/api/v1/insights/countries_controller.rb`
+  - `backend/app/controllers/api/v1/insights/segments_controller.rb`

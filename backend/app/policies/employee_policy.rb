@@ -10,6 +10,7 @@ class EmployeePolicy < ApplicationPolicy
   alias_method :update?, :index?
   alias_method :destroy?, :index?
   alias_method :countries_insights?, :index?
+  alias_method :segments_insights?, :index?
 
   private
 
