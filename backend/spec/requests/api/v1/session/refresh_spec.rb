@@ -56,4 +56,18 @@ RSpec.describe "POST /api/v1/session/refresh", type: :request do
 
     expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
+
+  it "returns 401 when bearer token user does not match refresh token owner" do
+    owner = create(:user, :hr_manager, email_address: "owner@example.com", password: "password123")
+    attacker = create(:user, :hr_manager, email_address: "attacker@example.com", password: "password123")
+
+    owner_tokens = login(email: owner.email_address, password: "password123")
+    attacker_tokens = login(email: attacker.email_address, password: "password123")
+
+    post "/api/v1/session/refresh",
+         params: { refresh_token: owner_tokens.fetch("refresh_token") },
+         headers: { "Authorization" => "Bearer #{attacker_tokens.fetch("access_token")}" }
+
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
+  end
 end

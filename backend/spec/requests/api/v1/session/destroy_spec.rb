@@ -56,4 +56,18 @@ RSpec.describe "DELETE /api/v1/session", type: :request do
 
     expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
+
+  it "returns 401 when access token user does not match refresh token owner" do
+    owner = create(:user, :hr_manager, email_address: "owner@example.com", password: "password123")
+    attacker = create(:user, :hr_manager, email_address: "attacker@example.com", password: "password123")
+
+    owner_tokens = login(email: owner.email_address, password: "password123")
+    attacker_tokens = login(email: attacker.email_address, password: "password123")
+
+    delete "/api/v1/session",
+           params: { refresh_token: owner_tokens.fetch("refresh_token") },
+           headers: { "Authorization" => "Bearer #{attacker_tokens.fetch("access_token")}" }
+
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
+  end
 end

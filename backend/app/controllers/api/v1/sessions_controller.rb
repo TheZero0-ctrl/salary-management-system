@@ -7,7 +7,7 @@ module Api
 
       rate_limit to: 10, within: 3.minutes, only: :create,
                  by: -> { "#{request.remote_ip}:#{params[:email].to_s.strip.downcase}" },
-                 with: -> { render_error(:too_many_requests, "Too many login attempts. Try again later.", code: "RATE_LIMITED") }
+                 with: -> { render_api_error(:rate_limited) }
 
       def create
         user = User.find_for_database_authentication(email_address: normalized_email)
@@ -15,29 +15,38 @@ module Api
         if user&.valid_password?(params[:password])
           render json: token_pair_for(user), status: :ok
         else
-          render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED")
+          render_api_error(:unauthenticated)
         end
       end
 
       def refresh
         refresh_token = RefreshToken.find_active_by_token(params[:refresh_token])
-        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless refresh_token
+        return render_api_error(:unauthenticated) unless refresh_token
 
-        user = refresh_token.user
-        revoke_current_access_token
-        refresh_token.revoke!
+        bearer_user = bearer_user_from_payload
+        if bearer_token.present? && bearer_user.blank?
+          return render_api_error(:unauthenticated)
+        end
+        if bearer_user.present? && refresh_token.user_id != bearer_user.id
+          return render_api_error(:unauthenticated)
+        end
 
-        render json: token_pair_for(user), status: :ok
+        rotated_tokens = rotate_refresh_token(refresh_token)
+        return render_api_error(:unauthenticated) if rotated_tokens.nil?
+
+        render json: rotated_tokens, status: :ok
       end
 
       def destroy
-        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless decoded_bearer_payload
+        bearer_user = bearer_user_from_payload
+        return render_api_error(:unauthenticated) if bearer_user.blank?
 
         refresh_token = RefreshToken.find_active_by_token(params[:refresh_token])
-        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless refresh_token
+        return render_api_error(:unauthenticated) unless refresh_token
+        return render_api_error(:unauthenticated) if refresh_token.user_id != bearer_user.id
 
-        revoke_current_access_token
-        refresh_token.revoke!
+        return render_api_error(:unauthenticated) unless revoke_session!(refresh_token)
+
         head :no_content
       end
 
@@ -62,6 +71,45 @@ module Api
         return unless payload
 
         RevokedAccessToken.revoke_payload!(payload)
+      end
+
+      def bearer_user_from_payload
+        payload = decoded_bearer_payload
+        return if payload.blank?
+
+        User.find_by(id: payload["sub"])
+      end
+
+      def rotate_refresh_token(refresh_token)
+        new_tokens = nil
+        token_still_active = true
+
+        ActiveRecord::Base.transaction do
+          refresh_token.lock!
+          token_still_active = refresh_token.revoked_at.nil? && refresh_token.expires_at > Time.current
+          raise ActiveRecord::Rollback unless token_still_active
+
+          revoke_current_access_token
+          refresh_token.revoke!
+          new_tokens = token_pair_for(refresh_token.user)
+        end
+
+        token_still_active ? new_tokens : nil
+      end
+
+      def revoke_session!(refresh_token)
+        token_still_active = true
+
+        ActiveRecord::Base.transaction do
+          refresh_token.lock!
+          token_still_active = refresh_token.revoked_at.nil? && refresh_token.expires_at > Time.current
+          raise ActiveRecord::Rollback unless token_still_active
+
+          revoke_current_access_token
+          refresh_token.revoke!
+        end
+
+        token_still_active
       end
     end
   end
