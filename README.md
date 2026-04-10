@@ -46,8 +46,6 @@ You can safely re-run:
 ```bash
 cd backend
 bin/rails employees:seed
-# or
-bin/rails db:seed
 ```
 
 Seed behavior is deterministic and idempotent.
@@ -151,6 +149,13 @@ curl -X DELETE "http://localhost:3000/api/v1/session" \
   -H "Content-Type: application/json" \
   -d '{"refresh_token":"<REFRESH_TOKEN>"}'
 ```
+
+## Documentation
+
+- Architecture decisions and tradeoffs: `docs/architecture-notes.md`
+- TDD journey log: `docs/tdd-log.md`
+- AI usage summary: `docs/ai-artifacts/ai-usage.md`
+- AI-generated implementation plan: `docs/ai-artifacts/api-feature-implementation-plan.md`
 
 ## Useful Commands
 
