@@ -9,7 +9,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
     full_name
     job_title
     country_code
-    salary_cents
+    salary
     employment_type
     effective_from
     status

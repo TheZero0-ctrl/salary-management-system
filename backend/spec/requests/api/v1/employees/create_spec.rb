@@ -11,7 +11,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
     full_name
     job_title
     country_code
-    salary_cents
+    salary
     employment_type
     effective_from
     status
@@ -34,7 +34,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
       full_name: "Ada Lovelace",
       job_title: "Engineering Manager",
       country_code: "US",
-      salary_cents: 250_000,
+      salary: 2500,
       employment_type: "full_time",
       effective_from: Date.new(2026, 1, 1),
       status: "active",
@@ -86,7 +86,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
         "full_name" => "Ada Lovelace",
         "job_title" => "Engineering Manager",
         "country_code" => "US",
-        "salary_cents" => 250_000,
+        "salary" => 2500.0,
         "employment_type" => "full_time",
         "effective_from" => "2026-01-01",
         "status" => "active",
@@ -105,6 +105,19 @@ RSpec.describe "POST /api/v1/employees", type: :request do
       end.not_to change(Employee, :count)
 
       expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
+    end
+
+    it "returns 422 when salary is less than or equal to 0" do
+      invalid_params = valid_params.merge(salary: 0)
+
+      expect do
+        post_create(params: invalid_params, headers: headers)
+      end.not_to change(Employee, :count)
+
+      expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "salary_cents", "message" => "must be greater than 0")
+      )
     end
 
     it "returns 409 for duplicate employee_code and does not create an employee" do

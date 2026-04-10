@@ -9,7 +9,7 @@ RSpec.describe "GET /api/v1/employees", type: :request do
     full_name
     job_title
     country_code
-    salary_cents
+    salary
     employment_type
     effective_from
     status
@@ -66,7 +66,7 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       second = create(:employee, salary_cents: 500_000)
       last = create(:employee, salary_cents: 100_000)
 
-      get "/api/v1/employees", params: { sort_by: "salary_cents", sort_direction: "desc" }, headers: headers
+      get "/api/v1/employees", params: { sort_by: "salary", sort_direction: "desc" }, headers: headers
 
       expect(response).to have_http_status(:ok)
 
@@ -136,7 +136,7 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       lower_salary = create(:employee, salary_cents: 100_000, deleted_at: nil)
       higher_salary = create(:employee, salary_cents: 200_000, deleted_at: nil)
 
-      get "/api/v1/employees", params: { sort_by: "salary_cents", sort_direction: "desc" }, headers: headers
+      get "/api/v1/employees", params: { sort_by: "salary", sort_direction: "desc" }, headers: headers
 
       expect(response).to have_http_status(:ok)
 
@@ -168,12 +168,23 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       )
     end
 
-    it "returns 400 for malformed salary range params" do
-      get "/api/v1/employees", params: { salary_min: "100x" }, headers: headers
+    it "filters salary range by multiplying numeric dollars by 100" do
+      matching_employee = create(:employee, salary_cents: 100_050, deleted_at: nil)
+      create(:employee, salary_cents: 99_999, deleted_at: nil)
+
+      get "/api/v1/employees", params: { salary_min: "1000.5" }, headers: headers
+
+      expect(response).to have_http_status(:ok)
+      returned_ids = json_response.fetch("data").map { |item| item.fetch("id") }
+      expect(returned_ids).to include(matching_employee.id)
+    end
+
+    it "returns 400 when salary_min is less than 0" do
+      get "/api/v1/employees", params: { salary_min: -1 }, headers: headers
 
       expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
       expect(json_response.fetch("error").fetch("details")).to include(
-        include("field" => "salary_min", "message" => "must be an integer")
+        include("field" => "salary_min", "message" => "must be greater than or equal to 0")
       )
     end
   end

@@ -9,7 +9,7 @@ module Employees
     end
 
     def call
-      employee = Employee.new(params)
+      employee = Employee.new(sanitized_params)
 
       if employee.save
         success_result(employee)
@@ -25,6 +25,14 @@ module Employees
     private
 
     attr_reader :params
+
+    def sanitized_params
+      attrs = params.to_h.symbolize_keys
+      return attrs unless attrs.key?(:salary)
+
+      attrs[:salary_cents] = (attrs.delete(:salary).to_f * 100).round
+      attrs
+    end
 
     def success_result(employee)
       ServiceResult.success(status: :created, employee: employee)

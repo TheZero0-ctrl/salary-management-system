@@ -9,7 +9,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
     full_name
     job_title
     country_code
-    salary_cents
+    salary
     employment_type
     effective_from
     status
@@ -69,7 +69,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
       params = {
         employee_code: "EMP-2001",
         full_name: "Updated Name",
-        salary_cents: 150_000,
+        salary: 1500,
         job_title: "Senior Engineer"
       }
 
@@ -89,7 +89,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         "id" => employee.id,
         "employee_code" => "EMP-2001",
         "full_name" => "Updated Name",
-        "salary_cents" => 150_000,
+        "salary" => 1500.0,
         "job_title" => "Senior Engineer"
       )
       expect(json_response.fetch("data").keys).to include(*UPDATE_STABLE_EMPLOYEE_FIELDS)
@@ -106,6 +106,22 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
 
       expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
       expect(employee.reload.full_name).to eq("Original Name")
+    end
+
+    it "returns 422 when salary is less than or equal to 0" do
+      employee = create(:employee, salary_cents: 120_000)
+
+      patch_update(
+        employee_code: employee.employee_code,
+        params: { salary: 0 },
+        headers: headers
+      )
+
+      expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "salary_cents", "message" => "must be greater than 0")
+      )
+      expect(employee.reload.salary_cents).to eq(120_000)
     end
 
     it "returns 409 for duplicate employee_code update" do

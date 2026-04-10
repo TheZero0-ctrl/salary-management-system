@@ -99,7 +99,7 @@ module Api
           :full_name,
           :job_title,
           :country_code,
-          :salary_cents,
+          :salary,
           :employment_type,
           :effective_from,
           :status,
@@ -126,11 +126,11 @@ module Api
       end
 
       def normalized_salary_min
-        parse_integer_param(params[:salary_min], field: :salary_min, min: 0)
+        parse_money_to_cents_param(params[:salary_min], field: :salary_min, min: 0)
       end
 
       def normalized_salary_max
-        parse_integer_param(params[:salary_max], field: :salary_max, min: 0)
+        parse_money_to_cents_param(params[:salary_max], field: :salary_max, min: 0)
       end
 
       def render_employee_not_found

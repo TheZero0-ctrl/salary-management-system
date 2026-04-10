@@ -10,6 +10,7 @@ module Employees
       "job_title" => :job_title,
       "department" => :department,
       "status" => :status,
+      "salary" => :salary_cents,
       "salary_cents" => :salary_cents,
       "updated_at" => :updated_at
     }.freeze
