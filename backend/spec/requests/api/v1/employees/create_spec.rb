@@ -51,15 +51,13 @@ RSpec.describe "POST /api/v1/employees", type: :request do
   it "returns 401 when unauthenticated" do
     post_create(params: valid_params)
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
     post_create(params: valid_params, headers: authorization_header("employee"))
 
-    expect(response).to have_http_status(:forbidden)
-    expect(json_response).to include("error" => "You are not allowed to perform this action")
+    expect_error_envelope(status: :forbidden, code: "FORBIDDEN", message: "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
@@ -97,8 +95,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
         post_create(params: invalid_params, headers: headers)
       end.not_to change(Employee, :count)
 
-      expect(response).to have_http_status(422)
-      expect(json_response).to include("error")
+      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
     end
 
     it "returns 409 for duplicate employee_code and does not create an employee" do
@@ -108,8 +105,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
         post_create(params: valid_params, headers: headers)
       end.not_to change(Employee, :count)
 
-      expect(response).to have_http_status(:conflict)
-      expect(json_response).to include("error")
+      expect_error_envelope(status: :conflict, code: "DUPLICATE_EMPLOYEE_CODE", message: "Employee code has already been taken")
     end
   end
 end

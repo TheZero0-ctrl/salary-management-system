@@ -31,8 +31,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
 
     get "/api/v1/employees/#{employee.employee_code}"
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 for an invalid token" do
@@ -40,8 +39,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
 
     get "/api/v1/employees/#{employee.employee_code}", headers: { "Authorization" => "Bearer invalid.token" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
@@ -49,8 +47,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
 
     get "/api/v1/employees/#{employee.employee_code}", headers: authorization_header("employee")
 
-    expect(response).to have_http_status(:forbidden)
-    expect(json_response).to include("error" => "You are not allowed to perform this action")
+    expect_error_envelope(status: :forbidden, code: "FORBIDDEN", message: "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
@@ -72,8 +69,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
     it "returns 404 for an unknown employee code" do
       get "/api/v1/employees/EMP-999999", headers: headers
 
-      expect(response).to have_http_status(:not_found)
-      expect(json_response).to include("error" => "Resource not found")
+      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
     end
 
     it "returns 404 for a soft-deleted employee" do
@@ -81,8 +77,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
 
       get "/api/v1/employees/#{employee.employee_code}", headers: headers
 
-      expect(response).to have_http_status(:not_found)
-      expect(json_response).to include("error" => "Resource not found")
+      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
     end
   end
 end

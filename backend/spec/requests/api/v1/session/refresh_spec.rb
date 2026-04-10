@@ -38,8 +38,7 @@ RSpec.describe "POST /api/v1/session/refresh", type: :request do
 
     get "/api/v1/employees/#{employee.employee_code}", headers: { "Authorization" => "Bearer #{initial_access_token}" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 for a reused refresh token" do
@@ -49,14 +48,12 @@ RSpec.describe "POST /api/v1/session/refresh", type: :request do
     post "/api/v1/session/refresh", params: { refresh_token: initial_refresh_token }
     post "/api/v1/session/refresh", params: { refresh_token: initial_refresh_token }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 for an invalid refresh token" do
     post "/api/v1/session/refresh", params: { refresh_token: "invalid-refresh-token" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 end

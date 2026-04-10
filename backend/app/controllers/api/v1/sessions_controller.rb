@@ -7,7 +7,7 @@ module Api
 
       rate_limit to: 10, within: 3.minutes, only: :create,
                  by: -> { "#{request.remote_ip}:#{params[:email].to_s.strip.downcase}" },
-                 with: -> { render json: { error: "Too many login attempts. Try again later." }, status: :too_many_requests }
+                 with: -> { render_error(:too_many_requests, "Too many login attempts. Try again later.", code: "RATE_LIMITED") }
 
       def create
         user = User.find_for_database_authentication(email_address: normalized_email)
@@ -15,13 +15,13 @@ module Api
         if user&.valid_password?(params[:password])
           render json: token_pair_for(user), status: :ok
         else
-          render json: { error: "Unauthorized" }, status: :unauthorized
+          render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED")
         end
       end
 
       def refresh
         refresh_token = RefreshToken.find_active_by_token(params[:refresh_token])
-        return render json: { error: "Unauthorized" }, status: :unauthorized unless refresh_token
+        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless refresh_token
 
         user = refresh_token.user
         revoke_current_access_token
@@ -31,10 +31,10 @@ module Api
       end
 
       def destroy
-        return render json: { error: "Unauthorized" }, status: :unauthorized unless decoded_bearer_payload
+        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless decoded_bearer_payload
 
         refresh_token = RefreshToken.find_active_by_token(params[:refresh_token])
-        return render json: { error: "Unauthorized" }, status: :unauthorized unless refresh_token
+        return render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED") unless refresh_token
 
         revoke_current_access_token
         refresh_token.revoke!

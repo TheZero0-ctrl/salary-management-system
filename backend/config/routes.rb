@@ -15,6 +15,10 @@ Rails.application.routes.draw do
         post :refresh, on: :collection
       end
       resources :employees, only: [ :index, :show, :create, :update, :destroy ], param: :employee_code
+
+      namespace :insights do
+        get :countries, to: "countries#index"
+      end
     end
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Seeding
-  class BootstrapService
+  class BootstrapService < ApplicationService
     DEFAULT_COUNT = 10_000
     DEFAULT_SEED = 42
     DEFAULT_BATCH_SIZE = 1_000
@@ -15,10 +15,6 @@ module Seeding
       :throughput,
       keyword_init: true
     )
-
-    def self.call(...)
-      new(...).call
-    end
 
     def initialize(
       count: DEFAULT_COUNT,

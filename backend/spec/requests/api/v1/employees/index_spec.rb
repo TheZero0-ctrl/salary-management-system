@@ -29,22 +29,19 @@ RSpec.describe "GET /api/v1/employees", type: :request do
   it "returns 401 when unauthenticated" do
     get "/api/v1/employees"
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 for an invalid token" do
     get "/api/v1/employees", headers: { "Authorization" => "Bearer invalid.token" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
     get "/api/v1/employees", headers: authorization_header("employee")
 
-    expect(response).to have_http_status(:forbidden)
-    expect(json_response).to include("error" => "You are not allowed to perform this action")
+    expect_error_envelope(status: :forbidden, code: "FORBIDDEN", message: "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
@@ -124,8 +121,7 @@ RSpec.describe "GET /api/v1/employees", type: :request do
     it "returns 422 for an unsupported sort field" do
       get "/api/v1/employees", params: { sort_by: "unsupported_field" }, headers: headers
 
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(json_response).to include("error")
+      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Unsupported sort field")
     end
   end
 end

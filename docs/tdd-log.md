@@ -243,3 +243,51 @@
 
 ### REFACTOR
 - No additional refactor changes were needed; guard method and early return were already clear and consistent with controller style.
+
+## Step 13 - feat(backend): add country salary insights endpoint with auth and aggregate contract
+
+### RED (tests first)
+- Added request specs in `backend/spec/requests/api/v1/insights/countries_spec.rb` for:
+  - `401` when unauthenticated
+  - `403` for authenticated non-`hr_manager`
+  - `200` with `data.min/max/avg/median/stddev/count/computed_at` for authenticated `hr_manager`
+  - aggregate correctness for deterministic fixture salaries
+
+### GREEN (minimum implementation)
+- Added insights route and controller endpoint:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/insights/countries_controller.rb`
+- Wired authorization through employee policy and implemented country salary aggregation endpoint.
+
+### REFACTOR
+- Extracted aggregation computation away from controller into dedicated insight layer before further optimization.
+
+## Step 14 - standardize error envelope, improve insights performance, and add service bases
+
+### RED (tests first)
+- Expanded request specs to verify standardized error envelope (`error.code/message/details/request_id`) and insight edge-cases:
+  - invalid/missing `country_code` returns `422` with field-level details
+  - empty-country result returns nil aggregates and `count: 0`
+- Updated existing request specs to assert new envelope contract across employee/session/insights endpoints.
+
+### GREEN (minimum implementation)
+- Standardized API error rendering in `backend/app/controllers/application_controller.rb` and updated session/employee controllers to use it:
+  - `backend/app/controllers/application_controller.rb`
+  - `backend/app/controllers/api/v1/sessions_controller.rb`
+  - `backend/app/controllers/api/v1/employees_controller.rb`
+- Improved insights performance by moving aggregate math to SQL query object:
+  - `backend/app/queries/insights/countries_metrics_query.rb`
+  - `backend/app/controllers/api/v1/insights/countries_controller.rb`
+- Added explicit insights authorization action:
+  - `backend/app/policies/employee_policy.rb` (`countries_insights?`)
+- Added service inheritance foundations:
+  - `backend/app/services/application_service.rb`
+  - `backend/app/services/insights/base_service.rb`
+  - updated existing services to inherit from `ApplicationService`
+- Added shared spec helper for envelope assertions:
+  - `backend/spec/support/authentication_helpers.rb`
+
+### REFACTOR
+- Removed thin wrapper service `backend/app/services/insights/countries_salary_summary.rb` after switching to direct query-object usage in controller.
+- Kept controller focused on auth/validation/rendering while query object handles DB aggregation.
+- Verified the full suite after contract/performance updates (`121` examples passing).

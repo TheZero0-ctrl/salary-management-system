@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 module Employees
-  class DestroyService
-    Result = Struct.new(:error, :status, keyword_init: true) do
+  class DestroyService < ApplicationService
+    Result = Struct.new(:error, :status, :error_code, :details, keyword_init: true) do
       def success?
         status == :no_content
       end
-    end
 
-    def self.call(...)
-      new(...).call
+      def details
+        self[:details] || []
+      end
     end
 
     def initialize(employee:)
@@ -32,7 +32,12 @@ module Employees
     end
 
     def validation_error_result
-      Result.new(error: employee.errors.full_messages.to_sentence, status: :unprocessable_entity)
+      Result.new(
+        error: "Validation failed",
+        status: :unprocessable_entity,
+        error_code: "VALIDATION_ERROR",
+        details: employee.errors.map { |error| { field: error.attribute.to_s, message: error.message } }
+      )
     end
   end
 end

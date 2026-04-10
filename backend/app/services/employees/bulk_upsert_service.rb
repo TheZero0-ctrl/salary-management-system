@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Employees
-  class BulkUpsertService
+  class BulkUpsertService < ApplicationService
     DEFAULT_BATCH_SIZE = 1_000
 
     UPSERT_ATTRIBUTES = %i[
@@ -30,10 +30,6 @@ module Employees
       :errors,
       keyword_init: true
     )
-
-    def self.call(...)
-      new(...).call
-    end
 
     def initialize(records:, batch_size: DEFAULT_BATCH_SIZE)
       @records = records

@@ -21,8 +21,7 @@ RSpec.describe "DELETE /api/v1/session", type: :request do
 
     post "/api/v1/session/refresh", params: { refresh_token: refresh_token }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "invalidates the current access token on logout" do
@@ -40,8 +39,7 @@ RSpec.describe "DELETE /api/v1/session", type: :request do
 
     get "/api/v1/employees/#{employee.employee_code}", headers: { "Authorization" => "Bearer #{access_token}" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 when authorization header is missing" do
@@ -50,14 +48,12 @@ RSpec.describe "DELETE /api/v1/session", type: :request do
 
     delete "/api/v1/session", params: { refresh_token: refresh_token }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 401 for an invalid refresh token" do
     delete "/api/v1/session", params: { refresh_token: "invalid-refresh-token" }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 end

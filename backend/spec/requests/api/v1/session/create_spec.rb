@@ -29,8 +29,7 @@ RSpec.describe "POST /api/v1/session", type: :request do
       password: "wrong-password"
     }
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 429 after too many login attempts" do
@@ -50,7 +49,6 @@ RSpec.describe "POST /api/v1/session", type: :request do
       password: "wrong-password"
     }
 
-    expect(response).to have_http_status(:too_many_requests)
-    expect(json_response).to include("error" => "Too many login attempts. Try again later.")
+    expect_error_envelope(status: :too_many_requests, code: "RATE_LIMITED", message: "Too many login attempts. Try again later.")
   end
 end

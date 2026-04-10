@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Employees
-  class DatasetGenerator
+  class DatasetGenerator < ApplicationService
     DEFAULT_COUNT = 10_000
     DEFAULT_SEED = 42
 
@@ -41,10 +41,6 @@ module Employees
 
     EMPLOYMENT_TYPES = Employee.employment_types.keys.freeze
     STATUSES = Employee.statuses.keys.freeze
-
-    def self.call(...)
-      new(...).call
-    end
 
     def initialize(count: DEFAULT_COUNT, seed: DEFAULT_SEED, reference_date: Date.current)
       @count = count.to_i

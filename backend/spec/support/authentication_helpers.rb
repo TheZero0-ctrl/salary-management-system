@@ -21,4 +21,12 @@ module AuthenticationHelpers
   def auth_headers_for(user, password:)
     { "Authorization" => "Bearer #{access_token_for(user, password: password)}" }
   end
+
+  def expect_error_envelope(status:, code:, message: nil)
+    expect(response).to have_http_status(status)
+
+    error = json_response.fetch("error")
+    expect(error).to include("code" => code, "request_id" => be_present)
+    expect(error).to include("message" => message) if message
+  end
 end

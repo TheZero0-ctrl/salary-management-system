@@ -9,7 +9,7 @@ module Api
         authorize! Employee
 
         if invalid_sort_field?
-          return render_error(:unprocessable_entity, "Unsupported sort field")
+          return render_error(:unprocessable_entity, "Unsupported sort field", code: "VALIDATION_ERROR")
         end
 
         employees_scope = Employees::FilterQuery.call(filter_params)
@@ -120,7 +120,7 @@ module Api
       end
 
       def render_service_error(result)
-        render json: { error: result.error }, status: result.status
+        render_error(result.status, result.error, code: result.error_code, details: result.details)
       end
     end
   end

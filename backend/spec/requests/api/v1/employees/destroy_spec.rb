@@ -22,8 +22,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
 
     delete_employee(employee_code: employee.employee_code)
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
@@ -31,8 +30,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
 
     delete_employee(employee_code: employee.employee_code, headers: authorization_header("employee"))
 
-    expect(response).to have_http_status(:forbidden)
-    expect(json_response).to include("error" => "You are not allowed to perform this action")
+    expect_error_envelope(status: :forbidden, code: "FORBIDDEN", message: "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
@@ -51,8 +49,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
     it "returns 404 for an unknown employee code" do
       delete_employee(employee_code: "EMP-999999", headers: headers)
 
-      expect(response).to have_http_status(:not_found)
-      expect(json_response).to include("error" => "Resource not found")
+      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
     end
 
     it "excludes the employee from index and returns 404 for show after successful delete" do
@@ -74,8 +71,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
 
       get "#{DESTROY_EMPLOYEES_ENDPOINT}/#{employee.employee_code}", headers: headers
 
-      expect(response).to have_http_status(:not_found)
-      expect(json_response).to include("error" => "Resource not found")
+      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
     end
   end
 end

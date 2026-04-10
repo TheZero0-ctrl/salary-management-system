@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 module Employees
-  class UpdateService
-    Result = Struct.new(:employee, :error, :status, keyword_init: true) do
+  class UpdateService < ApplicationService
+    Result = Struct.new(:employee, :error, :status, :error_code, :details, keyword_init: true) do
       def success?
         status == :ok
       end
-    end
 
-    def self.call(...)
-      new(...).call
+      def details
+        self[:details] || []
+      end
     end
 
     def initialize(employee:, params:)
@@ -36,11 +36,21 @@ module Employees
     end
 
     def duplicate_code_result
-      Result.new(error: "Employee code has already been taken", status: :conflict)
+      Result.new(
+        error: "Employee code has already been taken",
+        status: :conflict,
+        error_code: "DUPLICATE_EMPLOYEE_CODE",
+        details: [ { field: "employee_code", message: "has already been taken" } ]
+      )
     end
 
     def validation_error_result
-      Result.new(error: employee.errors.full_messages.to_sentence, status: :unprocessable_entity)
+      Result.new(
+        error: "Validation failed",
+        status: :unprocessable_entity,
+        error_code: "VALIDATION_ERROR",
+        details: employee.errors.map { |error| { field: error.attribute.to_s, message: error.message } }
+      )
     end
   end
 end

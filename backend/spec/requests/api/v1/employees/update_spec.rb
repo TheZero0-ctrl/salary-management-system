@@ -35,8 +35,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
 
     patch_update(employee_code: employee.employee_code, params: { full_name: "Updated Name" })
 
-    expect(response).to have_http_status(:unauthorized)
-    expect(json_response).to include("error" => "Unauthorized")
+    expect_error_envelope(status: :unauthorized, code: "UNAUTHENTICATED", message: "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
@@ -48,8 +47,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
       headers: authorization_header("employee")
     )
 
-    expect(response).to have_http_status(:forbidden)
-    expect(json_response).to include("error" => "You are not allowed to perform this action")
+    expect_error_envelope(status: :forbidden, code: "FORBIDDEN", message: "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
@@ -95,8 +93,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         headers: headers
       )
 
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(json_response).to include("error")
+      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
       expect(employee.reload.full_name).to eq("Original Name")
     end
 
@@ -110,8 +107,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         headers: headers
       )
 
-      expect(response).to have_http_status(:conflict)
-      expect(json_response).to include("error")
+      expect_error_envelope(status: :conflict, code: "DUPLICATE_EMPLOYEE_CODE", message: "Employee code has already been taken")
       expect(employee.reload.employee_code).to eq("EMP-1001")
     end
 
@@ -122,8 +118,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         headers: headers
       )
 
-      expect(response).to have_http_status(:not_found)
-      expect(json_response).to include("error" => "Resource not found")
+      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
     end
   end
 end
