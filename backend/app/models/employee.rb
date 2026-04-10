@@ -6,10 +6,10 @@ class Employee < ApplicationRecord
 
   scope :not_deleted, -> { where(deleted_at: nil) }
 
-  validates :employee_code, presence: true, length: { maximum: 32 }, format: { with: /\AEMP-[0-9]{4,}\z/ }, uniqueness: true
+  validates :employee_code, presence: true, length: { maximum: 32 }, format: { with: ValidationPatterns::EMPLOYEE_CODE }, uniqueness: true
   validates :full_name, presence: true, length: { minimum: 2, maximum: 120 }
   validates :job_title, presence: true, length: { minimum: 2, maximum: 120 }
-  validates :country_code, presence: true, format: { with: /\A[A-Z]{2}\z/ }
+  validates :country_code, presence: true, format: { with: ValidationPatterns::COUNTRY_CODE }
   validates :salary_cents, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :employment_type, presence: true, inclusion: { in: employment_types.keys }
   validates :effective_from, presence: true

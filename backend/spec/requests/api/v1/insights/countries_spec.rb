@@ -32,7 +32,7 @@ RSpec.describe "GET /api/v1/insights/countries", type: :request do
   it "returns 422 for missing country_code" do
     get INSIGHTS_COUNTRIES_ENDPOINT, headers: authorization_header("hr_manager")
 
-    expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+    expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     expect(json_response.fetch("error").fetch("details")).to include(
       include("field" => "country_code", "message" => "must be a valid ISO alpha-2 code")
     )
@@ -41,7 +41,7 @@ RSpec.describe "GET /api/v1/insights/countries", type: :request do
   it "returns 422 for invalid country_code format" do
     get_countries_insights(country_code: "usa", headers: authorization_header("hr_manager"))
 
-    expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+    expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     expect(json_response.fetch("error").fetch("details")).to include(
       include("field" => "country_code", "message" => "must be a valid ISO alpha-2 code")
     )

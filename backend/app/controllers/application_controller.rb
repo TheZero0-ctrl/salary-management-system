@@ -1,18 +1,23 @@
 class ApplicationController < ActionController::API
   include BearerTokenPayload
-
-  before_action :require_authenticated_user
+  include QueryParamParsing
   include ActionPolicy::Controller
-  authorize :user, through: :current_user
   include Pagy::Method
   include PaginationParams
 
+  before_action :require_authenticated_user
+  authorize :user, through: :current_user
+
   rescue_from ActiveRecord::RecordNotFound do
-    render_error(:not_found, "Resource not found", code: "NOT_FOUND")
+    render_api_error(:not_found)
+  end
+
+  rescue_from QueryParamParsing::InvalidQueryParameter do |error|
+    render_api_error(:bad_request, details: [ { field: error.field, message: error.detail } ])
   end
 
   rescue_from ActionPolicy::Unauthorized do
-    render_error(:forbidden, "You are not allowed to perform this action", code: "FORBIDDEN")
+    render_api_error(:forbidden)
   end
 
   private
@@ -20,7 +25,17 @@ class ApplicationController < ActionController::API
   def require_authenticated_user
     return if user_signed_in?
 
-    render_error(:unauthorized, "Unauthorized", code: "UNAUTHENTICATED")
+    render_api_error(:unauthenticated)
+  end
+
+  def render_api_error(key, details: [], message: nil)
+    definition = ApiErrors.fetch(key)
+    render_error(
+      definition.fetch(:status),
+      message || definition.fetch(:message),
+      code: definition.fetch(:code),
+      details: details
+    )
   end
 
   def render_error(status, message, code: nil, details: [])
@@ -41,7 +56,7 @@ class ApplicationController < ActionController::API
     when :forbidden then "FORBIDDEN"
     when :not_found then "NOT_FOUND"
     when :conflict then "CONFLICT"
-    when :unprocessable_entity then "VALIDATION_ERROR"
+    when :unprocessable_entity, :unprocessable_content then "VALIDATION_ERROR"
     when :too_many_requests then "RATE_LIMITED"
     else "INTERNAL_ERROR"
     end

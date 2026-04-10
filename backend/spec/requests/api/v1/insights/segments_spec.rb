@@ -36,7 +36,7 @@ RSpec.describe "GET /api/v1/insights/segments", type: :request do
   it "returns 422 for missing country_code" do
     get INSIGHTS_SEGMENTS_ENDPOINT, params: { job_title: "Software Engineer" }, headers: authorization_header("hr_manager")
 
-    expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+    expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     expect(json_response.fetch("error").fetch("details")).to include(
       include("field" => "country_code", "message" => "must be a valid ISO alpha-2 code")
     )
@@ -45,7 +45,7 @@ RSpec.describe "GET /api/v1/insights/segments", type: :request do
   it "returns 422 for invalid country_code format" do
     get_segments_insights(country_code: "usa", job_title: "Software Engineer", headers: authorization_header("hr_manager"))
 
-    expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+    expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     expect(json_response.fetch("error").fetch("details")).to include(
       include("field" => "country_code", "message" => "must be a valid ISO alpha-2 code")
     )
@@ -54,7 +54,7 @@ RSpec.describe "GET /api/v1/insights/segments", type: :request do
   it "returns 422 when job_title is missing" do
     get_segments_insights(country_code: "US", headers: authorization_header("hr_manager"))
 
-    expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+    expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     expect(json_response.fetch("error").fetch("details")).to include(
       include("field" => "job_title", "message" => "can't be blank")
     )

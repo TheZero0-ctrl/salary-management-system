@@ -95,7 +95,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
         post_create(params: invalid_params, headers: headers)
       end.not_to change(Employee, :count)
 
-      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+      expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
     end
 
     it "returns 409 for duplicate employee_code and does not create an employee" do

@@ -6,10 +6,8 @@ module Api
       class BaseController < ApplicationController
         private
 
-        COUNTRY_CODE_FORMAT = /\A[A-Z]{2}\z/
-
         def invalid_country_code?
-          !params[:country_code].to_s.match?(COUNTRY_CODE_FORMAT)
+          !params[:country_code].to_s.match?(ValidationPatterns::COUNTRY_CODE)
         end
 
         def country_code_error_detail
@@ -17,7 +15,7 @@ module Api
         end
 
         def render_validation_error(details)
-          render_error(:unprocessable_entity, "Validation failed", code: "VALIDATION_ERROR", details: details)
+          render_api_error(:validation_error, details: details)
         end
       end
     end
