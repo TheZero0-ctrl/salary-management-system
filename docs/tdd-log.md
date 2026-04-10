@@ -54,7 +54,7 @@
 ### REFACTOR
 - Aligned query structure with `ApplicationQuery` pattern by adding `backend/app/queries/application_query.rb` and updating `Employees::FilterQuery` to use it.
 
-## Step 5 - feat(api): add employees index endpoint with controller pagination
+## Step 5 - feat(backend): add employees index endpoint with controller pagination
 
 ### RED (tests first)
 - Added request specs in `backend/spec/requests/api/v1/employees/index_spec.rb` for paginated listing, soft-delete exclusion, and country filter behavior.
@@ -157,3 +157,27 @@
   - `backend/spec/requests/api/v1/session/create_spec.rb`
   - `backend/spec/requests/api/v1/session/refresh_spec.rb`
   - `backend/spec/requests/api/v1/session/destroy_spec.rb`
+
+## Step 9 - feat(backend): add employees create endpoint with service and request specs
+
+### RED (tests first)
+- Added request specs in `backend/spec/requests/api/v1/employees/create_spec.rb` for:
+  - `401` when unauthenticated
+  - `403` for authenticated non-`hr_manager`
+  - `201` with persisted employee and stable response fields for valid `hr_manager` requests
+  - `422` for invalid payloads with no record creation
+  - `409` for duplicate `employee_code` with no record creation
+
+### GREEN (minimum implementation)
+- Added employees create route and controller action:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/employees_controller.rb`
+- Added policy authorization for create:
+  - `backend/app/policies/employee_policy.rb`
+- Added create service to encapsulate creation outcome mapping:
+  - `backend/app/services/employees/create_service.rb`
+
+### REFACTOR
+- Extracted focused response helpers in controller create flow to keep action intent clear.
+- Extracted focused result builders in create service for success/conflict/validation outcomes.
+- Simplified create request spec setup with shared endpoint constant and helper method.

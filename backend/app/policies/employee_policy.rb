@@ -9,6 +9,10 @@ class EmployeePolicy < ApplicationPolicy
     hr_manager?
   end
 
+  def create?
+    hr_manager?
+  end
+
   private
 
   def hr_manager?

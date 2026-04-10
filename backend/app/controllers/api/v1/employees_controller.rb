@@ -24,6 +24,16 @@ module Api
         render json: { data: Api::V1::EmployeePresenter.new(@employee).as_json }
       end
 
+      def create
+        authorize! Employee
+
+        result = Employees::CreateService.call(params: employee_params)
+
+        return render_created_employee(result.employee) if result.success?
+
+        render_create_error(result)
+      end
+
       private
 
       def filter_params
@@ -43,6 +53,30 @@ module Api
 
       def set_employee
         @employee = Employee.not_deleted.find_by!(employee_code: params[:employee_code])
+      end
+
+      def employee_params
+        params.permit(
+          :employee_code,
+          :full_name,
+          :job_title,
+          :country_code,
+          :salary_cents,
+          :employment_type,
+          :effective_from,
+          :status,
+          :department,
+          :hire_date,
+          :last_salary_review_date
+        )
+      end
+
+      def render_created_employee(employee)
+        render json: { data: Api::V1::EmployeePresenter.new(employee).as_json }, status: :created
+      end
+
+      def render_create_error(result)
+        render json: { error: result.error }, status: result.status
       end
     end
   end

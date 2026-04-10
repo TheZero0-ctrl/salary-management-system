@@ -14,7 +14,7 @@ Rails.application.routes.draw do
       resource :session, only: [ :create, :destroy ] do
         post :refresh, on: :collection
       end
-      resources :employees, only: [ :index, :show ], param: :employee_code
+      resources :employees, only: [ :index, :show, :create ], param: :employee_code
     end
   end
 end
