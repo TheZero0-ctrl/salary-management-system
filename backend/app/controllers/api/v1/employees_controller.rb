@@ -3,7 +3,7 @@
 module Api
   module V1
     class EmployeesController < ApplicationController
-      before_action :set_employee, only: :show
+      before_action :set_employee, only: [ :show, :update ]
 
       def index
         authorize! Employee
@@ -31,7 +31,17 @@ module Api
 
         return render_created_employee(result.employee) if result.success?
 
-        render_create_error(result)
+        render_service_error(result)
+      end
+
+      def update
+        authorize! @employee
+
+        result = Employees::UpdateService.call(employee: @employee, params: employee_params)
+
+        return render_updated_employee(result.employee) if result.success?
+
+        render_service_error(result)
       end
 
       private
@@ -56,7 +66,7 @@ module Api
       end
 
       def employee_params
-        params.permit(
+        permitted_params = params.permit(
           :employee_code,
           :full_name,
           :job_title,
@@ -69,13 +79,22 @@ module Api
           :hire_date,
           :last_salary_review_date
         )
+
+        requested_employee_code = request.request_parameters[:employee_code] || request.request_parameters["employee_code"]
+        permitted_params[:employee_code] = requested_employee_code if requested_employee_code.present?
+
+        permitted_params
       end
 
       def render_created_employee(employee)
         render json: { data: Api::V1::EmployeePresenter.new(employee).as_json }, status: :created
       end
 
-      def render_create_error(result)
+      def render_updated_employee(employee)
+        render json: { data: Api::V1::EmployeePresenter.new(employee).as_json }, status: :ok
+      end
+
+      def render_service_error(result)
         render json: { error: result.error }, status: result.status
       end
     end

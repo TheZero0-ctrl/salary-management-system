@@ -5,13 +5,9 @@ class EmployeePolicy < ApplicationPolicy
     hr_manager?
   end
 
-  def show?
-    hr_manager?
-  end
-
-  def create?
-    hr_manager?
-  end
+  alias_method :show?, :index?
+  alias_method :create?, :index?
+  alias_method :update?, :index?
 
   private
 

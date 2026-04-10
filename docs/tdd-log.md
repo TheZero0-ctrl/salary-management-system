@@ -181,3 +181,27 @@
 - Extracted focused response helpers in controller create flow to keep action intent clear.
 - Extracted focused result builders in create service for success/conflict/validation outcomes.
 - Simplified create request spec setup with shared endpoint constant and helper method.
+
+## Step 10 - feat(backend): add employees update endpoint with service and request specs
+
+### RED (tests first)
+- Added request specs in `backend/spec/requests/api/v1/employees/update_spec.rb` for:
+  - `401` when unauthenticated
+  - `403` for authenticated non-`hr_manager`
+  - `200` with updated fields for valid `hr_manager` requests
+  - `422` for invalid payloads without persisting invalid changes
+  - `409` for duplicate `employee_code` updates
+  - `404` for unknown employee code
+
+### GREEN (minimum implementation)
+- Added employees update route and controller action:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/employees_controller.rb`
+- Added policy authorization for update:
+  - `backend/app/policies/employee_policy.rb`
+- Added update service to encapsulate update outcome mapping:
+  - `backend/app/services/employees/update_service.rb`
+
+### REFACTOR
+- Consolidated create/update error rendering into one controller helper (`render_service_error`) in `backend/app/controllers/api/v1/employees_controller.rb`.
+- Reduced policy duplication by aliasing `show?`, `create?`, and `update?` to `index?` in `backend/app/policies/employee_policy.rb`.
