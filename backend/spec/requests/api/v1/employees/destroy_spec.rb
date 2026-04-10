@@ -49,7 +49,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
     it "returns 404 for an unknown employee code" do
       delete_employee(employee_code: "EMP-999999", headers: headers)
 
-      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
+      expect_error_envelope(status: :not_found, code: "EMPLOYEE_NOT_FOUND", message: "Employee not found")
     end
 
     it "excludes the employee from index and returns 404 for show after successful delete" do
@@ -71,7 +71,7 @@ RSpec.describe "DELETE /api/v1/employees/:employee_code", type: :request do
 
       get "#{DESTROY_EMPLOYEES_ENDPOINT}/#{employee.employee_code}", headers: headers
 
-      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
+      expect_error_envelope(status: :not_found, code: "EMPLOYEE_NOT_FOUND", message: "Employee not found")
     end
   end
 end

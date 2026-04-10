@@ -118,10 +118,63 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       )
     end
 
+    it "filters employees by job_title and department" do
+      matching_employee = create(:employee, job_title: "Software Engineer", department: "Engineering", deleted_at: nil)
+      create(:employee, job_title: "Software Engineer", department: "Finance", deleted_at: nil)
+
+      get "/api/v1/employees", params: { job_title: "Software Engineer", department: "Engineering" }, headers: headers
+
+      expect(response).to have_http_status(:ok)
+
+      data = json_response.fetch("data")
+
+      expect(data.length).to eq(1)
+      expect(data.first.fetch("id")).to eq(matching_employee.id)
+    end
+
+    it "supports sort and direction aliases" do
+      lower_salary = create(:employee, salary_cents: 100_000, deleted_at: nil)
+      higher_salary = create(:employee, salary_cents: 200_000, deleted_at: nil)
+
+      get "/api/v1/employees", params: { sort: "salary_cents", direction: "desc" }, headers: headers
+
+      expect(response).to have_http_status(:ok)
+
+      returned_ids = json_response.fetch("data").map { |item| item.fetch("id") }
+      expect(returned_ids.first(2)).to eq([ higher_salary.id, lower_salary.id ])
+    end
+
     it "returns 422 for an unsupported sort field" do
       get "/api/v1/employees", params: { sort_by: "unsupported_field" }, headers: headers
 
-      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Unsupported sort field")
+      expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Unsupported sort field")
+    end
+
+    it "returns 400 for malformed page param" do
+      get "/api/v1/employees", params: { page: "abc" }, headers: headers
+
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "page", "message" => "must be an integer")
+      )
+    end
+
+    it "returns 400 for invalid per_page param" do
+      get "/api/v1/employees", params: { per_page: 0 }, headers: headers
+
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "per_page", "message" => "must be greater than or equal to 1")
+      )
+    end
+
+    it "returns 400 for malformed salary range params" do
+      get "/api/v1/employees", params: { salary_min: "100x" }, headers: headers
+
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "salary_min", "message" => "must be an integer")
+      )
     end
   end
 end

@@ -4,12 +4,13 @@ module Api
   module V1
     class EmployeesController < ApplicationController
       before_action :set_employee, only: [ :show, :update, :destroy ]
+      rescue_from ActiveRecord::RecordNotFound, with: :render_employee_not_found
 
       def index
         authorize! Employee
 
         if invalid_sort_field?
-          return render_error(:unprocessable_entity, "Unsupported sort field", code: "VALIDATION_ERROR")
+          return render_api_error(:validation_error, message: "Unsupported sort field")
         end
 
         employees_scope = Employees::FilterQuery.call(filter_params)
@@ -61,25 +62,38 @@ module Api
       private
 
       def invalid_sort_field?
-        sort_by = filter_params[:sort_by]
+        sort_by = normalized_sort_field
         return false if sort_by.blank?
 
         !Employees::FilterQuery::SORT_FIELDS.key?(sort_by.to_s)
       end
 
       def filter_params
-        params.permit(
+        permitted = params.permit(
           :format,
           :page,
           :per_page,
           :country_code,
+          :job_title,
+          :department,
           :status,
           :salary_min,
           :salary_max,
           :term,
+          :query,
+          :search,
+          :sort,
+          :direction,
           :sort_by,
           :sort_direction
         )
+
+        permitted[:sort_by] = normalized_sort_field
+        permitted[:sort_direction] = normalized_sort_direction
+        permitted[:term] = normalized_search_term
+        permitted[:salary_min] = normalized_salary_min
+        permitted[:salary_max] = normalized_salary_max
+        permitted
       end
 
       def set_employee
@@ -121,6 +135,30 @@ module Api
 
       def render_service_error(result)
         render_error(result.status, result.error, code: result.error_code, details: result.details)
+      end
+
+      def normalized_sort_field
+        params[:sort_by].presence || params[:sort].presence
+      end
+
+      def normalized_sort_direction
+        params[:sort_direction].presence || params[:direction].presence
+      end
+
+      def normalized_search_term
+        params[:term].presence || params[:search].presence || params[:query].presence
+      end
+
+      def normalized_salary_min
+        parse_integer_param(params[:salary_min], field: :salary_min, min: 0)
+      end
+
+      def normalized_salary_max
+        parse_integer_param(params[:salary_max], field: :salary_max, min: 0)
+      end
+
+      def render_employee_not_found
+        render_api_error(:employee_not_found)
       end
     end
   end

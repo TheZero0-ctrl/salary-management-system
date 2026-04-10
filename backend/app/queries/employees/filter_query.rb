@@ -7,8 +7,11 @@ module Employees
       "full_name" => :full_name,
       "employee_code" => :employee_code,
       "country_code" => :country_code,
+      "job_title" => :job_title,
+      "department" => :department,
       "status" => :status,
-      "salary_cents" => :salary_cents
+      "salary_cents" => :salary_cents,
+      "updated_at" => :updated_at
     }.freeze
     SORT_DIRECTIONS = %w[asc desc].freeze
 
@@ -36,6 +39,8 @@ module Employees
 
     def apply_filters(scope)
       scope = scope.where(country_code: @params[:country_code]) if @params[:country_code].present?
+      scope = scope.where(job_title: @params[:job_title]) if @params[:job_title].present?
+      scope = scope.where(department: @params[:department]) if @params[:department].present?
       scope = scope.where(status: @params[:status]) if @params[:status].present?
       scope = scope.where("employees.salary_cents >= ?", @params[:salary_min]) if @params[:salary_min].present?
       scope = scope.where("employees.salary_cents <= ?", @params[:salary_max]) if @params[:salary_max].present?

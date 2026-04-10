@@ -69,7 +69,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
     it "returns 404 for an unknown employee code" do
       get "/api/v1/employees/EMP-999999", headers: headers
 
-      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
+      expect_error_envelope(status: :not_found, code: "EMPLOYEE_NOT_FOUND", message: "Employee not found")
     end
 
     it "returns 404 for a soft-deleted employee" do
@@ -77,7 +77,7 @@ RSpec.describe "GET /api/v1/employees/:employee_code", type: :request do
 
       get "/api/v1/employees/#{employee.employee_code}", headers: headers
 
-      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
+      expect_error_envelope(status: :not_found, code: "EMPLOYEE_NOT_FOUND", message: "Employee not found")
     end
   end
 end

@@ -93,7 +93,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         headers: headers
       )
 
-      expect_error_envelope(status: :unprocessable_entity, code: "VALIDATION_ERROR", message: "Validation failed")
+      expect_error_envelope(status: :unprocessable_content, code: "VALIDATION_ERROR", message: "Validation failed")
       expect(employee.reload.full_name).to eq("Original Name")
     end
 
@@ -118,7 +118,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
         headers: headers
       )
 
-      expect_error_envelope(status: :not_found, code: "NOT_FOUND", message: "Resource not found")
+      expect_error_envelope(status: :not_found, code: "EMPLOYEE_NOT_FOUND", message: "Employee not found")
     end
   end
 end

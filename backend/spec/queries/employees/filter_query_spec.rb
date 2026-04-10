@@ -39,6 +39,28 @@ RSpec.describe Employees::FilterQuery do
       end
     end
 
+    context "when filtering by job_title" do
+      let(:params) { { job_title: "Software Engineer" } }
+
+      it "returns only employees with the requested job title" do
+        matching_employee = create(:employee, job_title: "Software Engineer", deleted_at: nil)
+        create(:employee, job_title: "Data Analyst", deleted_at: nil)
+
+        expect(results).to contain_exactly(matching_employee)
+      end
+    end
+
+    context "when filtering by department" do
+      let(:params) { { department: "Engineering" } }
+
+      it "returns only employees in the requested department" do
+        matching_employee = create(:employee, department: "Engineering", deleted_at: nil)
+        create(:employee, department: "Finance", deleted_at: nil)
+
+        expect(results).to contain_exactly(matching_employee)
+      end
+    end
+
     context "when filtering by salary range" do
       let(:params) { { salary_min: 100_000, salary_max: 200_000 } }
 
@@ -79,6 +101,23 @@ RSpec.describe Employees::FilterQuery do
         sam = create(:employee, full_name: "Sam Doe")
 
         expect(results.pluck(:id)).to eq([ first_alex.id, second_alex.id, sam.id ])
+      end
+    end
+
+    context "when sorting by updated_at" do
+      let(:params) { { sort_by: "updated_at", sort_direction: "desc" } }
+
+      it "sorts by updated_at and applies id ASC as tie-breaker" do
+        oldest = create(:employee)
+        tie_one = create(:employee)
+        tie_two = create(:employee)
+
+        oldest.update_column(:updated_at, 3.days.ago)
+        tie_timestamp = 1.day.ago.change(usec: 0)
+        tie_one.update_column(:updated_at, tie_timestamp)
+        tie_two.update_column(:updated_at, tie_timestamp)
+
+        expect(results.pluck(:id)).to eq([ tie_one.id, tie_two.id, oldest.id ])
       end
     end
 
