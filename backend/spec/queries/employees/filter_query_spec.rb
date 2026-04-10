@@ -123,16 +123,5 @@ RSpec.describe Employees::FilterQuery do
         expect(results).to be_empty
       end
     end
-
-    context "when paginating" do
-      let(:params) { { page: 2, per_page: 2 } }
-
-      it "uses 1-based page indexing with a minimum page size of 10" do
-        employees = Array.new(20) { create(:employee) }
-
-        expect(results).to eq(employees[10..19])
-        expect(described_class.call(page: 1, per_page: 2)).to eq(employees[0..9])
-      end
-    end
   end
 end

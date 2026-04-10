@@ -1,0 +1,48 @@
+# frozen_string_literal: true
+
+module Api
+  module V1
+    class EmployeesController < ApplicationController
+      before_action :set_employee, only: :show
+
+      def index
+        authorize! Employee
+
+        employees_scope = Employees::FilterQuery.call(filter_params)
+        page, per_page = pagination_params
+        pagy, employees = pagy(:offset, employees_scope, page:, limit: per_page)
+
+        render json: {
+          data: employees.map { |employee| Api::V1::EmployeePresenter.new(employee).as_json },
+          meta: pagination_meta(pagy)
+        }
+      end
+
+      def show
+        authorize! @employee
+
+        render json: { data: Api::V1::EmployeePresenter.new(@employee).as_json }
+      end
+
+      private
+
+      def filter_params
+        params.permit(
+          :page,
+          :per_page,
+          :country_code,
+          :status,
+          :salary_min,
+          :salary_max,
+          :term,
+          :sort_by,
+          :sort_direction
+        )
+      end
+
+      def set_employee
+        @employee = Employee.not_deleted.find_by!(employee_code: params[:employee_code])
+      end
+    end
+  end
+end

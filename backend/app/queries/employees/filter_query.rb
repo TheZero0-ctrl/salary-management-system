@@ -25,8 +25,7 @@ module Employees
       result = @relation
       result = apply_filters(result)
       result = apply_term_filter(result)
-      result = apply_sort(result)
-      apply_pagination(result)
+      apply_sort(result)
     end
 
     private
@@ -62,18 +61,6 @@ module Employees
       direction = "asc" unless SORT_DIRECTIONS.include?(direction)
 
       scope.order(column => direction.to_sym).order(id: :asc)
-    end
-
-    def apply_pagination(scope)
-      return scope unless @params[:page].present? || @params[:per_page].present?
-
-      pagy = Pagy::Offset.new(
-        count: scope.count,
-        page: [ @params[:page].to_i, 1 ].max,
-        limit: [ @params[:per_page].to_i, 10 ].max
-      )
-
-      pagy.records(scope)
     end
   end
 end
