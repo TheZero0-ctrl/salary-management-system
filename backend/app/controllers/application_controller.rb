@@ -1,5 +1,7 @@
 class ApplicationController < ActionController::API
+  before_action :authenticate_user!
   include ActionPolicy::Controller
+  authorize :user, through: :current_user
   include Pagy::Method
   include PaginationParams
 

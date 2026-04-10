@@ -121,13 +121,29 @@ The system must support generating and loading 10,000+ employee records efficien
 
 Requirements:
 
+- Seed/bootstrap at least one authenticated HR manager user.
+- Seed/generate 10,000 employee records for performance and analytics validation.
 - Name generation from `first_names.txt` and `last_names.txt`.
 - Bulk insertion using batched operations.
 - Idempotent execution (safe to run repeatedly).
 - Deterministic mode for repeatable test environments.
 - Runtime and throughput logging.
 
-## 4.5 Error Handling and Validation UX
+## 4.5 Authentication and Authorization
+
+The system is API-only and must enforce authentication for all in-scope `/api/v1` endpoints.
+
+Requirements:
+
+- Use Rails generated authentication as the baseline (`bin/rails generate authentication`).
+- Enhance API authentication with JWT bearer tokens.
+- User role must be stored in a `role` string field.
+- Current release allows only one role value: `hr_manager`.
+- Authenticated users with `role = "hr_manager"` are allowed on all in-scope API actions.
+- Unauthenticated callers are denied with `401`.
+- Authenticated callers without required role are denied with `403`.
+
+## 4.6 Error Handling and Validation UX
 
 API and UI must provide clear, field-level validation errors.
 
@@ -187,7 +203,18 @@ Canonical schema:
 - `updated_at`
 - `deleted_at` (nullable, for soft delete)
 
-## 6.2 Indexing Strategy
+## 6.2 Core Entity: User
+
+Canonical schema:
+
+- `id` (UUID or bigint primary key)
+- `email` (unique)
+- `password_digest` (or framework-managed credential storage)
+- `role` (string; current allowed value: `hr_manager`)
+- `created_at`
+- `updated_at`
+
+## 6.3 Indexing Strategy
 
 Required indexes:
 
@@ -197,11 +224,19 @@ Required indexes:
 - index on `status`
 - composite index on (`country_code`, `job_title`)
 - index on (`country_code`, `salary_amount`) for country stats
+- unique index on `users.email`
+- index on `users.role`
 
 
 ## 7. API Specification
 
 Base path: `/api/v1`
+
+Authentication:
+
+- Authenticated API requests must use `Authorization: Bearer <jwt>`.
+- JWTs are issued from the Rails generated authentication flow, extended for API usage.
+- Authorization is role-based with `role = "hr_manager"` in current release.
 
 
 ## 8. UX and UI Specification

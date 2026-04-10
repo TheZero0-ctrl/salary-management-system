@@ -2,10 +2,16 @@
 
 class EmployeePolicy < ApplicationPolicy
   def index?
-    true
+    hr_manager?
   end
 
   def show?
-    true
+    hr_manager?
+  end
+
+  private
+
+  def hr_manager?
+    user&.role == "hr_manager"
   end
 end

@@ -96,3 +96,64 @@
   - `backend/app/controllers/application_controller.rb`
 - Aligned pagination defaults/caps with reference pattern (`DEFAULT_PAGE = 1`, `DEFAULT_PER_PAGE = 12`, `MAX_PER_PAGE = 50`).
 - Fixed show lookup to use route param `employee_code` and corrected callback to `before_action` in `backend/app/controllers/api/v1/employees_controller.rb`.
+
+## Step 7 - feat(backend): implement API auth with devise-jwt, refresh tokens, and role guards
+
+### RED (tests first)
+- Added/updated request specs for API auth contract and access control:
+  - `backend/spec/requests/api/v1/session/create_spec.rb`
+  - `backend/spec/requests/api/v1/session/refresh_spec.rb`
+  - `backend/spec/requests/api/v1/session/destroy_spec.rb`
+  - `backend/spec/requests/api/v1/employees/index_spec.rb`
+  - `backend/spec/requests/api/v1/employees/show_spec.rb`
+- Defined expected flows for:
+  - login success/failure (`200` / `401`)
+  - refresh token rotation and reuse rejection (`200` / `401`)
+  - logout refresh revocation (`204` / `401`)
+  - employee endpoint authz (`401` unauthenticated, `403` non-hr-manager, `200` hr_manager)
+
+### GREEN (minimum implementation)
+- Switched to standard API auth stack with Devise + JWT:
+  - `backend/Gemfile`
+  - `backend/config/initializers/devise.rb`
+  - `backend/app/models/user.rb`
+  - `backend/app/controllers/application_controller.rb`
+- Added API session endpoints and refresh token lifecycle:
+  - `backend/app/controllers/api/v1/sessions_controller.rb`
+  - `backend/app/models/refresh_token.rb`
+  - `backend/config/routes.rb`
+- Added DB support for users and refresh tokens:
+  - `backend/db/migrate/20260410110000_create_users.rb`
+  - `backend/db/migrate/20260410120001_create_refresh_tokens.rb`
+  - `backend/db/schema.rb`
+- Enforced role policy for employee access:
+  - `backend/app/policies/employee_policy.rb`
+
+### REFACTOR
+- Removed obsolete custom/session auth artifacts after devise-jwt adoption:
+  - `backend/app/controllers/concerns/authentication.rb`
+  - `backend/app/services/jwt_service.rb`
+  - `backend/app/models/session.rb`
+- Consolidated early-stage user migration history into a clean baseline migration (`create_users`) suitable for reset-based development.
+- Added login rate limit coverage and test compatibility:
+  - `backend/app/controllers/api/v1/sessions_controller.rb`
+  - `backend/config/environments/test.rb`
+
+## Step 8 - extract reusable request auth helpers into spec support
+
+### RED (tests first)
+- No behavior-spec additions; this was a pure test refactor with existing request suite as safety net.
+
+### GREEN (minimum implementation)
+- Added shared request auth helpers in:
+  - `backend/spec/support/authentication_helpers.rb`
+- Enabled support auto-loading and helper inclusion for request specs:
+  - `backend/spec/rails_helper.rb`
+
+### REFACTOR
+- Replaced duplicated login/token/header setup across request specs with helper usage:
+  - `backend/spec/requests/api/v1/employees/index_spec.rb`
+  - `backend/spec/requests/api/v1/employees/show_spec.rb`
+  - `backend/spec/requests/api/v1/session/create_spec.rb`
+  - `backend/spec/requests/api/v1/session/refresh_spec.rb`
+  - `backend/spec/requests/api/v1/session/destroy_spec.rb`
