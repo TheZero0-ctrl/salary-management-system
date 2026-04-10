@@ -3,7 +3,7 @@
 module Api
   module V1
     class EmployeesController < ApplicationController
-      before_action :set_employee, only: [ :show, :update ]
+      before_action :set_employee, only: [ :show, :update, :destroy ]
 
       def index
         authorize! Employee
@@ -40,6 +40,16 @@ module Api
         result = Employees::UpdateService.call(employee: @employee, params: employee_params)
 
         return render_updated_employee(result.employee) if result.success?
+
+        render_service_error(result)
+      end
+
+      def destroy
+        authorize! @employee
+
+        result = Employees::DestroyService.call(employee: @employee)
+
+        return render_destroyed_employee if result.success?
 
         render_service_error(result)
       end
@@ -92,6 +102,10 @@ module Api
 
       def render_updated_employee(employee)
         render json: { data: Api::V1::EmployeePresenter.new(employee).as_json }, status: :ok
+      end
+
+      def render_destroyed_employee
+        head :no_content
       end
 
       def render_service_error(result)

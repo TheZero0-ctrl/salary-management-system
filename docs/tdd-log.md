@@ -205,3 +205,27 @@
 ### REFACTOR
 - Consolidated create/update error rendering into one controller helper (`render_service_error`) in `backend/app/controllers/api/v1/employees_controller.rb`.
 - Reduced policy duplication by aliasing `show?`, `create?`, and `update?` to `index?` in `backend/app/policies/employee_policy.rb`.
+
+## Step 11 - feat(backend): add employees soft-delete endpoint with service and request specs
+
+### RED (tests first)
+- Added request specs in `backend/spec/requests/api/v1/employees/destroy_spec.rb` for:
+  - `401` when unauthenticated
+  - `403` for authenticated non-`hr_manager`
+  - `204` with soft-delete behavior (`deleted_at` set) for valid `hr_manager` requests
+  - `404` for unknown employee code
+  - post-delete visibility rules (`index` excludes record and `show` returns `404`)
+
+### GREEN (minimum implementation)
+- Added employees destroy route and controller action:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/employees_controller.rb`
+- Added policy authorization for destroy:
+  - `backend/app/policies/employee_policy.rb`
+- Added destroy service to encapsulate soft-delete operation:
+  - `backend/app/services/employees/destroy_service.rb`
+
+### REFACTOR
+- Kept controller flow consistent with create/update by using service-result rendering helpers in `backend/app/controllers/api/v1/employees_controller.rb`.
+- Extracted success/error result builders in `backend/app/services/employees/destroy_service.rb` for consistency with other employee services.
+- Renamed request-spec endpoint constant to `DESTROY_EMPLOYEES_ENDPOINT` in `backend/spec/requests/api/v1/employees/destroy_spec.rb` to avoid constant redefinition noise in multi-file runs.
