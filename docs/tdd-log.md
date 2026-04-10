@@ -229,3 +229,17 @@
 - Kept controller flow consistent with create/update by using service-result rendering helpers in `backend/app/controllers/api/v1/employees_controller.rb`.
 - Extracted success/error result builders in `backend/app/services/employees/destroy_service.rb` for consistency with other employee services.
 - Renamed request-spec endpoint constant to `DESTROY_EMPLOYEES_ENDPOINT` in `backend/spec/requests/api/v1/employees/destroy_spec.rb` to avoid constant redefinition noise in multi-file runs.
+
+## Step 12 - feat(backend): validate unsupported sort field for employees index
+
+### RED (tests first)
+- Added request spec coverage in `backend/spec/requests/api/v1/employees/index_spec.rb` for unsupported sort field behavior:
+  - authenticated `hr_manager` request with invalid `sort_by` returns `422`
+  - response includes an `error` key
+
+### GREEN (minimum implementation)
+- Added guard validation in `backend/app/controllers/api/v1/employees_controller.rb` to reject unsupported `sort_by` values before running the query.
+- Reused `Employees::FilterQuery::SORT_FIELDS` as the allowlist source.
+
+### REFACTOR
+- No additional refactor changes were needed; guard method and early return were already clear and consistent with controller style.

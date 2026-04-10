@@ -8,6 +8,10 @@ module Api
       def index
         authorize! Employee
 
+        if invalid_sort_field?
+          return render_error(:unprocessable_entity, "Unsupported sort field")
+        end
+
         employees_scope = Employees::FilterQuery.call(filter_params)
         page, per_page = pagination_params
         pagy, employees = pagy(:offset, employees_scope, page:, limit: per_page)
@@ -55,6 +59,13 @@ module Api
       end
 
       private
+
+      def invalid_sort_field?
+        sort_by = filter_params[:sort_by]
+        return false if sort_by.blank?
+
+        !Employees::FilterQuery::SORT_FIELDS.key?(sort_by.to_s)
+      end
 
       def filter_params
         params.permit(

@@ -120,5 +120,12 @@ RSpec.describe "GET /api/v1/employees", type: :request do
         "employee_code" => us_employee.employee_code
       )
     end
+
+    it "returns 422 for an unsupported sort field" do
+      get "/api/v1/employees", params: { sort_by: "unsupported_field" }, headers: headers
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(json_response).to include("error")
+    end
   end
 end
