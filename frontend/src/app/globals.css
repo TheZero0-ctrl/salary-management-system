@@ -23,3 +23,7 @@ body {
   color: var(--foreground);
   background-image: radial-gradient(circle at 0% 0%, #fffdf7 0%, #f4f1eb 52%, #ece8e1 100%);
 }
+
+button {
+  cursor: pointer;
+}
