@@ -66,8 +66,8 @@ RSpec.describe "GET /api/v1/insights/countries", type: :request do
 
       expect(data.keys).to include("min", "max", "avg", "median", "stddev", "count", "computed_at")
       expect(data).to include(
-        "min" => 100_000,
-        "max" => 500_000,
+        "min" => 1000.0,
+        "max" => 5000.0,
         "count" => 3
       )
       expect(data.fetch("avg")).to be_a(Float)

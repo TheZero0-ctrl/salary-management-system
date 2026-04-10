@@ -32,7 +32,7 @@ module QueryParamParsing
   def parse_money_to_cents_param(value, field:, min: nil)
     return nil if value.blank?
 
-    parsed_cents = (value.to_f * 100).round
+    parsed_cents = MoneyAmount.dollars_to_cents(value)
 
     if min && parsed_cents < min
       raise_invalid_query_param(field, "must be greater than or equal to #{min / 100}")

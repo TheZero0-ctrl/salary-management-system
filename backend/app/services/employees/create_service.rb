@@ -30,7 +30,7 @@ module Employees
       attrs = params.to_h.symbolize_keys
       return attrs unless attrs.key?(:salary)
 
-      attrs[:salary_cents] = (attrs.delete(:salary).to_f * 100).round
+      attrs[:salary_cents] = MoneyAmount.dollars_to_cents(attrs.delete(:salary))
       attrs
     end
 

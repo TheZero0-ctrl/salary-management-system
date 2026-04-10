@@ -18,11 +18,11 @@ module Insights
       )
 
       {
-        min: min,
-        max: max,
-        avg: avg&.to_f,
-        median: median&.to_f,
-        stddev: stddev&.to_f,
+        min: MoneyAmount.cents_to_dollars(min),
+        max: MoneyAmount.cents_to_dollars(max),
+        avg: MoneyAmount.cents_to_dollars(avg),
+        median: MoneyAmount.cents_to_dollars(median),
+        stddev: MoneyAmount.cents_to_dollars(stddev),
         count: count
       }
     end

@@ -16,7 +16,7 @@ module Api
           full_name: employee.full_name,
           job_title: employee.job_title,
           country_code: employee.country_code,
-          salary: (employee.salary_cents.to_d / 100).round(2).to_f,
+          salary: MoneyAmount.cents_to_dollars(employee.salary_cents),
           employment_type: employee.employment_type,
           effective_from: employee.effective_from,
           status: employee.status,

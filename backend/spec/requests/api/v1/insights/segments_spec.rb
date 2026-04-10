@@ -77,8 +77,8 @@ RSpec.describe "GET /api/v1/insights/segments", type: :request do
       data = json_response.fetch("data")
       expect(data.keys).to include("min", "max", "avg", "median", "p25", "p75", "p90", "count", "computed_at")
       expect(data).to include(
-        "min" => 100_000,
-        "max" => 500_000,
+        "min" => 1000.0,
+        "max" => 5000.0,
         "count" => 5
       )
       expect(data.fetch("avg")).to be_a(Float)
@@ -102,8 +102,8 @@ RSpec.describe "GET /api/v1/insights/segments", type: :request do
 
       data = json_response.fetch("data")
       expect(data).to include(
-        "min" => 100_000,
-        "max" => 250_000,
+        "min" => 1000.0,
+        "max" => 2500.0,
         "count" => 2
       )
     end

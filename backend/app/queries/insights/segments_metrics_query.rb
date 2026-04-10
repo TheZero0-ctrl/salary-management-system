@@ -41,13 +41,13 @@ module Insights
 
     def formatted_metrics(min:, max:, avg:, median:, p25:, p75:, p90:, count:)
       {
-        min: min,
-        max: max,
-        avg: avg&.to_f,
-        median: median&.to_f,
-        p25: p25&.to_f,
-        p75: p75&.to_f,
-        p90: p90&.to_f,
+        min: MoneyAmount.cents_to_dollars(min),
+        max: MoneyAmount.cents_to_dollars(max),
+        avg: MoneyAmount.cents_to_dollars(avg),
+        median: MoneyAmount.cents_to_dollars(median),
+        p25: MoneyAmount.cents_to_dollars(p25),
+        p75: MoneyAmount.cents_to_dollars(p75),
+        p90: MoneyAmount.cents_to_dollars(p90),
         count: count
       }
     end

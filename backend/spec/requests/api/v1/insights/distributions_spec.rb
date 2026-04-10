@@ -36,16 +36,16 @@ RSpec.describe "GET /api/v1/insights/distributions", type: :request do
     )
   end
 
-  it "returns 400 for invalid bucket_size" do
-    get INSIGHTS_DISTRIBUTIONS_ENDPOINT,
-        params: { bucket_size: "0" },
-        headers: authorization_header("hr_manager")
+    it "returns 400 for invalid bucket_size" do
+      get INSIGHTS_DISTRIBUTIONS_ENDPOINT,
+          params: { bucket_size: "0" },
+          headers: authorization_header("hr_manager")
 
-    expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
-    expect(json_response.fetch("error").fetch("details")).to include(
-      include("field" => "bucket_size", "message" => "must be greater than or equal to 1")
-    )
-  end
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "bucket_size", "message" => "must be greater than or equal to 1")
+      )
+    end
 
   context "when authenticated as hr_manager" do
     let(:headers) { authorization_header("hr_manager") }
@@ -58,20 +58,20 @@ RSpec.describe "GET /api/v1/insights/distributions", type: :request do
       create(:employee, country_code: "DE", salary_cents: 400_000, deleted_at: nil)
       create(:employee, country_code: "DE", salary_cents: 999_999, deleted_at: 1.day.ago)
 
-      get INSIGHTS_DISTRIBUTIONS_ENDPOINT, params: { bucket_size: 100_000 }, headers: headers
+      get INSIGHTS_DISTRIBUTIONS_ENDPOINT, params: { bucket_size: 1000 }, headers: headers
 
       expect(response).to have_http_status(:ok)
 
       data = json_response.fetch("data")
-      expect(data).to include("bucket_size" => 100_000)
+      expect(data).to include("bucket_size" => 1000.0)
       expect(data.fetch("buckets")).to include(
-        include("min_salary_cents" => 0, "max_salary_cents" => 99_999, "count" => 2),
-        include("min_salary_cents" => 100_000, "max_salary_cents" => 199_999, "count" => 1),
-        include("min_salary_cents" => 200_000, "max_salary_cents" => 299_999, "count" => 1),
-        include("min_salary_cents" => 400_000, "max_salary_cents" => 499_999, "count" => 1)
+        include("min_salary" => 0.0, "max_salary" => 999.99, "count" => 2),
+        include("min_salary" => 1000.0, "max_salary" => 1999.99, "count" => 1),
+        include("min_salary" => 2000.0, "max_salary" => 2999.99, "count" => 1),
+        include("min_salary" => 4000.0, "max_salary" => 4999.99, "count" => 1)
       )
-      expect(data.fetch("top_countries").first).to include("country_code" => "DE")
-      expect(data.fetch("bottom_countries").first).to include("country_code" => "IN")
+      expect(data.fetch("top_countries").first).to include("country_code" => "DE", "avg_salary" => 4000.0)
+      expect(data.fetch("bottom_countries").first).to include("country_code" => "IN", "avg_salary" => 850.0)
       expect(data.fetch("computed_at")).to be_present
     end
   end

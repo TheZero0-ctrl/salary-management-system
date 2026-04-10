@@ -35,10 +35,10 @@ module Api
         end
 
         def bucket_size
-          parse_integer_param(
+          parse_money_to_cents_param(
             params[:bucket_size],
             field: :bucket_size,
-            min: 1
+            min: 100
           ) || ::Insights::DistributionMetricsQuery::DEFAULT_BUCKET_SIZE
         end
       end

@@ -16,9 +16,9 @@ module Insights
       averages = average_salary_by_country(scoped)
 
       {
-        bucket_size: bucket_size,
+        bucket_size: MoneyAmount.cents_to_dollars(bucket_size),
         buckets: salary_buckets(scoped),
-        top_countries: averages.sort_by { |entry| -entry.fetch(:avg_salary_cents) }.first(3),
+        top_countries: averages.sort_by { |entry| -entry.fetch(:avg_salary) }.first(3),
         bottom_countries: averages.first(3)
       }
     end
@@ -45,8 +45,8 @@ module Insights
         lower_bound = bucket_index * bucket_size
 
         {
-          min_salary_cents: lower_bound,
-          max_salary_cents: (lower_bound + bucket_size - 1),
+          min_salary: MoneyAmount.cents_to_dollars(lower_bound),
+          max_salary: MoneyAmount.cents_to_dollars(lower_bound + bucket_size - 1),
           count: count
         }
       end
@@ -56,12 +56,12 @@ module Insights
       scope.group(:country_code)
            .average(:salary_cents)
            .sort_by { |_, avg| avg.to_f }
-           .map do |country, avg|
-             {
-               country_code: country,
-               avg_salary_cents: avg.to_f.round(2)
-             }
-           end
+            .map do |country, avg|
+              {
+                country_code: country,
+                avg_salary: MoneyAmount.cents_to_dollars(avg)
+              }
+            end
     end
   end
 end
