@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 class User < ApplicationRecord
-  include Devise::JWT::RevocationStrategies::JTIMatcher
-
   devise :database_authenticatable,
          :jwt_authenticatable,
-         jwt_revocation_strategy: self
+         jwt_revocation_strategy: RevokedAccessToken
 
   has_many :refresh_tokens, dependent: :destroy
 
@@ -15,4 +13,8 @@ class User < ApplicationRecord
 
   validates :email_address, presence: true
   validates :role, presence: true, inclusion: { in: roles.keys }
+
+  def jwt_payload
+    { "jti" => SecureRandom.uuid }
+  end
 end

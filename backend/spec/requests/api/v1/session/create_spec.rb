@@ -30,6 +30,7 @@ RSpec.describe "POST /api/v1/session", type: :request do
     }
 
     expect(response).to have_http_status(:unauthorized)
+    expect(json_response).to include("error" => "Unauthorized")
   end
 
   it "returns 429 after too many login attempts" do

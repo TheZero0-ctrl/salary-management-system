@@ -28,6 +28,7 @@ module Api
 
       def filter_params
         params.permit(
+          :format,
           :page,
           :per_page,
           :country_code,

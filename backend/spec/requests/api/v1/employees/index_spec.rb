@@ -30,18 +30,21 @@ RSpec.describe "GET /api/v1/employees", type: :request do
     get "/api/v1/employees"
 
     expect(response).to have_http_status(:unauthorized)
+    expect(json_response).to include("error" => "Unauthorized")
   end
 
   it "returns 401 for an invalid token" do
     get "/api/v1/employees", headers: { "Authorization" => "Bearer invalid.token" }
 
     expect(response).to have_http_status(:unauthorized)
+    expect(json_response).to include("error" => "Unauthorized")
   end
 
   it "returns 403 for an authenticated non-hr-manager" do
     get "/api/v1/employees", headers: authorization_header("employee")
 
     expect(response).to have_http_status(:forbidden)
+    expect(json_response).to include("error" => "You are not allowed to perform this action")
   end
 
   context "when authenticated as hr_manager" do
