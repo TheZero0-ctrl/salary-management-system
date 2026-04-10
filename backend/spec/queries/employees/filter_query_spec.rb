@@ -74,8 +74,8 @@ RSpec.describe Employees::FilterQuery do
       end
     end
 
-    context "when searching by term" do
-      let(:params) { { term: "joHn" } }
+    context "when searching by search" do
+      let(:params) { { search: "joHn" } }
 
       it "matches full_name using case-insensitive partial search" do
         matching_employee = create(:employee, full_name: "Alice Johnson", employee_code: "EMP-7001")
@@ -88,7 +88,7 @@ RSpec.describe Employees::FilterQuery do
         matching_employee = create(:employee, employee_code: "EMP-12345", full_name: "Taylor Smith")
         create(:employee, employee_code: "EMP-98765", full_name: "Jordan Lee")
 
-        expect(described_class.call(term: "emp-123")).to contain_exactly(matching_employee)
+        expect(described_class.call(search: "emp-123")).to contain_exactly(matching_employee)
       end
     end
 

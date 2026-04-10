@@ -1,2 +1,3 @@
-# Intentionally left empty.
-# Use `bin/rails employees:seed` when bootstrap data is needed.
+# frozen_string_literal: true
+
+Seeding::BootstrapService.call

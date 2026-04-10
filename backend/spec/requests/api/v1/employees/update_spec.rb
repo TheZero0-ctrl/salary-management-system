@@ -27,7 +27,7 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
   end
 
   def patch_update(employee_code:, params:, headers: nil)
-    patch "/api/v1/employees/#{employee_code}", params:, headers:
+    patch "/api/v1/employees/#{employee_code}", params: { employee: params }, headers:
   end
 
   it "returns 401 when unauthenticated" do
@@ -52,6 +52,17 @@ RSpec.describe "PATCH /api/v1/employees/:employee_code", type: :request do
 
   context "when authenticated as hr_manager" do
     let(:headers) { authorization_header("hr_manager") }
+
+    it "returns 400 when employee payload is not nested" do
+      employee = create(:employee, full_name: "Original Name")
+
+      patch "/api/v1/employees/#{employee.employee_code}", params: { full_name: "Updated Name" }, headers: headers
+
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "employee", "message" => "is required")
+      )
+    end
 
     it "updates the employee and returns 200 with updated fields" do
       employee = create(:employee, employee_code: "EMP-1001", full_name: "Original Name", salary_cents: 120_000)

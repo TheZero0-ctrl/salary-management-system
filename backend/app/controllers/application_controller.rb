@@ -16,6 +16,10 @@ class ApplicationController < ActionController::API
     render_api_error(:bad_request, details: [ { field: error.field, message: error.detail } ])
   end
 
+  rescue_from ActionController::ParameterMissing do |error|
+    render_api_error(:bad_request, details: [ { field: error.param.to_s, message: "is required" } ])
+  end
+
   rescue_from ActionPolicy::Unauthorized do
     render_api_error(:forbidden)
   end

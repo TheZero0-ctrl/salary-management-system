@@ -132,11 +132,11 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       expect(data.first.fetch("id")).to eq(matching_employee.id)
     end
 
-    it "supports sort and direction aliases" do
+    it "sorts by sort_by and sort_direction" do
       lower_salary = create(:employee, salary_cents: 100_000, deleted_at: nil)
       higher_salary = create(:employee, salary_cents: 200_000, deleted_at: nil)
 
-      get "/api/v1/employees", params: { sort: "salary_cents", direction: "desc" }, headers: headers
+      get "/api/v1/employees", params: { sort_by: "salary_cents", sort_direction: "desc" }, headers: headers
 
       expect(response).to have_http_status(:ok)
 

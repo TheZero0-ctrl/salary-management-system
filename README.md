@@ -45,6 +45,8 @@ You can safely re-run:
 
 ```bash
 cd backend
+bin/rails employees:seed
+# or
 bin/rails db:seed
 ```
 
@@ -72,7 +74,7 @@ curl -X GET "http://localhost:3000/api/v1/employees?page=1&per_page=5" \
 ### 3) List employees with filters and sorting
 
 ```bash
-curl -X GET "http://localhost:3000/api/v1/employees?country_code=IN&status=active&sort_by=salary_cents&sort_direction=desc" \
+curl -X GET "http://localhost:3000/api/v1/employees?country_code=IN&status=active&search=sharma&sort_by=salary_cents&sort_direction=desc" \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
@@ -92,11 +94,16 @@ curl -X POST "http://localhost:3000/api/v1/employees" \
   -d '{
     "employee": {
       "employee_code": "EMP-10001",
-      "name": "Aarav Sharma",
-      "email": "aarav.sharma@example.com",
+      "full_name": "Aarav Sharma",
+      "job_title": "Software Engineer",
       "country_code": "IN",
+      "employment_type": "full_time",
+      "effective_from": "2026-01-01",
       "status": "active",
-      "salary_cents": 12500000
+      "salary_cents": 12500000,
+      "department": "Engineering",
+      "hire_date": "2024-01-10",
+      "last_salary_review_date": "2025-12-10"
     }
   }'
 ```
@@ -109,7 +116,8 @@ curl -X PATCH "http://localhost:3000/api/v1/employees/EMP-0001" \
   -H "Content-Type: application/json" \
   -d '{
     "employee": {
-      "status": "inactive"
+      "status": "inactive",
+      "salary_cents": 13250000
     }
   }'
 ```

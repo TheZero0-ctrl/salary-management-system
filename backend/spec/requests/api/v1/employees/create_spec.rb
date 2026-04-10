@@ -45,7 +45,7 @@ RSpec.describe "POST /api/v1/employees", type: :request do
   end
 
   def post_create(params:, headers: nil)
-    post EMPLOYEES_ENDPOINT, params:, headers:
+    post EMPLOYEES_ENDPOINT, params: { employee: params }, headers:
   end
 
   it "returns 401 when unauthenticated" do
@@ -62,6 +62,15 @@ RSpec.describe "POST /api/v1/employees", type: :request do
 
   context "when authenticated as hr_manager" do
     let(:headers) { authorization_header("hr_manager") }
+
+    it "returns 400 when employee payload is not nested" do
+      post EMPLOYEES_ENDPOINT, params: valid_params, headers: headers
+
+      expect_error_envelope(status: :bad_request, code: "BAD_REQUEST", message: "Invalid query parameter")
+      expect(json_response.fetch("error").fetch("details")).to include(
+        include("field" => "employee", "message" => "is required")
+      )
+    end
 
     it "returns 201, persists the employee, and returns expected fields" do
       expect do

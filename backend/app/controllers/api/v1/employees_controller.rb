@@ -62,7 +62,7 @@ module Api
       private
 
       def invalid_sort_field?
-        sort_by = normalized_sort_field
+        sort_by = params[:sort_by]
         return false if sort_by.blank?
 
         !Employees::FilterQuery::SORT_FIELDS.key?(sort_by.to_s)
@@ -79,18 +79,11 @@ module Api
           :status,
           :salary_min,
           :salary_max,
-          :term,
-          :query,
           :search,
-          :sort,
-          :direction,
           :sort_by,
           :sort_direction
         )
 
-        permitted[:sort_by] = normalized_sort_field
-        permitted[:sort_direction] = normalized_sort_direction
-        permitted[:term] = normalized_search_term
         permitted[:salary_min] = normalized_salary_min
         permitted[:salary_max] = normalized_salary_max
         permitted
@@ -101,7 +94,7 @@ module Api
       end
 
       def employee_params
-        permitted_params = params.permit(
+        params.require(:employee).permit(
           :employee_code,
           :full_name,
           :job_title,
@@ -114,11 +107,6 @@ module Api
           :hire_date,
           :last_salary_review_date
         )
-
-        requested_employee_code = request.request_parameters[:employee_code] || request.request_parameters["employee_code"]
-        permitted_params[:employee_code] = requested_employee_code if requested_employee_code.present?
-
-        permitted_params
       end
 
       def render_created_employee(employee)
@@ -135,18 +123,6 @@ module Api
 
       def render_service_error(result)
         render_error(result.status, result.error, code: result.error_code, details: result.details)
-      end
-
-      def normalized_sort_field
-        params[:sort_by].presence || params[:sort].presence
-      end
-
-      def normalized_sort_direction
-        params[:sort_direction].presence || params[:direction].presence
-      end
-
-      def normalized_search_term
-        params[:term].presence || params[:search].presence || params[:query].presence
       end
 
       def normalized_salary_min

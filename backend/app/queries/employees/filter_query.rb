@@ -48,10 +48,10 @@ module Employees
     end
 
     def apply_term_filter(scope)
-      term = @params[:term]
-      return scope if term.blank?
+      search = @params[:search]
+      return scope if search.blank?
 
-      search_term = "%#{Employee.sanitize_sql_like(term.to_s.strip)}%"
+      search_term = "%#{Employee.sanitize_sql_like(search.to_s.strip)}%"
       scope.where(
         "employees.full_name ILIKE :term OR employees.employee_code ILIKE :term",
         term: search_term
