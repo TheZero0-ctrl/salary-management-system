@@ -526,3 +526,44 @@
   - `frontend/src/lib/employees/filters.ts`
 - Kept page component thinner by delegating form rendering + query/url transformations while preserving behavior:
   - `frontend/src/app/(workspace)/employees/page.tsx`
+
+## Step 9 - feat(frontend): complete employee detail experience and directory pagination
+
+### RED (tests first)
+- Added and expanded failing specs for one end-to-end employee details + navigation + pagination slice:
+  - `frontend/src/app/__tests__/employee-detail-page.test.tsx`
+  - `frontend/src/app/__tests__/employees-page.test.tsx`
+  - `frontend/src/lib/api/__tests__/employees-client.test.ts`
+- Defined behavior for:
+  - protected employee detail route render states (loading, success, not-found, retryable error)
+  - actionable not-found UX with return-to-list link
+  - richer detail metadata rendering with fallback values (`--`)
+  - full detail mapping contract from API (`id`, `hireDate`, `lastSalaryReviewDate`, salary and core fields)
+  - list-to-detail navigation via employee-name link
+  - server-driven pagination meta parsing and UI controls
+  - clickable numbered page window (around current page) with preserved query params on page changes
+
+### GREEN (minimum implementation)
+- Added employee detail route implementation and UI states:
+  - `frontend/src/app/(workspace)/employees/[employee_code]/page.tsx`
+- Implemented employee detail API client behavior and mapping:
+  - `frontend/src/lib/api/employees-client.ts`
+  - `getEmployeeByCode` with distinct `{ kind: "found" | "not-found" | "error" }`
+  - mapped show payload fields including `id`, `hireDate`, `lastSalaryReviewDate`
+- Completed detail screen content and recovery UX:
+  - structured metadata presentation (profile + compensation sections)
+  - return-to-list action on not-found
+  - retry button on transient error state
+- Updated directory list interaction:
+  - employee name now links to `/employees/[employee_code]` with clear clickable affordance
+  - `frontend/src/app/(workspace)/employees/page.tsx`
+- Added pagination support to employees directory:
+  - `listEmployees` now consumes backend `meta` and returns `{ data, meta }`
+  - employees page renders `Page X of Y`, `Previous` / `Next`, and clickable page-number window
+  - page navigation preserves existing query params while updating `page`
+
+### REFACTOR
+- Consolidated API employee mapping to shared converter logic for list + detail paths in `frontend/src/lib/api/employees-client.ts`.
+- Simplified detail page async flow with reusable loader/retry callbacks and clearer state naming in `frontend/src/app/(workspace)/employees/[employee_code]/page.tsx`.
+- Reduced repetitive detail metadata markup by rendering from metadata item arrays while preserving labels/order and fallbacks.
+- Kept backward-compat handling in employees page for legacy array-shaped list mock responses to avoid brittle test/runtime transitions.

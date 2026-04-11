@@ -124,6 +124,30 @@ describe("Employees page", () => {
     expect(screen.getByRole("cell", { name: "EMP-0001" })).toBeVisible()
   })
 
+  it("renders employee name as a link to employee detail page", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+
+    const employeesDeferred = createDeferred<Array<EmployeeListItem>>()
+    listEmployeesMock.mockReturnValueOnce(employeesDeferred.promise)
+
+    render(<EmployeesPage />)
+
+    expect(screen.getByText(/loading employees/i)).toBeVisible()
+
+    employeesDeferred.resolve([
+      {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    ])
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading employees/i))
+
+    const employeeLink = screen.getByRole("link", { name: "Ada Lovelace" })
+
+    expect(employeeLink).toHaveAttribute("href", "/employees/EMP-0001")
+  })
+
   it("renders only primary business columns and one employee row after loading", async () => {
     getRefreshTokenMock.mockReturnValue("refresh-token")
 
@@ -389,6 +413,188 @@ describe("Employees page", () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith("/employees?sort_by=full_name")
+    })
+  })
+
+  it("renders pagination status with Previous and Next controls when pagination meta exists", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({ page: "2" }))
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [
+        {
+          fullName: "Ada Lovelace",
+          employeeCode: "EMP-0001",
+        },
+      ],
+      meta: {
+        page: 2,
+        perPage: 25,
+        totalCount: 112,
+        totalPages: 5,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    expect(await screen.findByText(/page 2 of 5/i)).toBeVisible()
+    expect(screen.getByRole("button", { name: /previous/i })).toBeVisible()
+    expect(screen.getByRole("button", { name: /next/i })).toBeVisible()
+  })
+
+  it("clicking Next pushes incremented page while preserving existing query params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "ada",
+        country_code: "IN",
+        page: "2",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 2,
+        perPage: 25,
+        totalCount: 112,
+        totalPages: 5,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /next/i }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?search=ada&country_code=IN&page=3")
+    })
+  })
+
+  it("clicking Previous pushes decremented page while preserving existing query params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "ada",
+        country_code: "IN",
+        page: "3",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 3,
+        perPage: 25,
+        totalCount: 112,
+        totalPages: 5,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /previous/i }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?search=ada&country_code=IN&page=2")
+    })
+  })
+
+  it("disables Previous on the first page", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({ page: "1" }))
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 1,
+        perPage: 25,
+        totalCount: 112,
+        totalPages: 5,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    expect(await screen.findByRole("button", { name: /previous/i })).toBeDisabled()
+  })
+
+  it("disables Next on the last page", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({ page: "5" }))
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 5,
+        perPage: 25,
+        totalCount: 112,
+        totalPages: 5,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    expect(await screen.findByRole("button", { name: /next/i })).toBeDisabled()
+  })
+
+  it("renders a clickable numbered page window around current page and omits pages outside the window", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({ page: "5" }))
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 5,
+        perPage: 25,
+        totalCount: 240,
+        totalPages: 10,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    expect(await screen.findByText(/page 5 of 10/i)).toBeVisible()
+
+    expect(screen.getByRole("button", { name: "3" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "4" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "5" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "6" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "7" })).toBeVisible()
+
+    const currentPageButton = screen.getByRole("button", { name: "5" })
+    fireEvent.click(currentPageButton)
+
+    const currentPageIsNotClickable =
+      currentPageButton.hasAttribute("disabled") || currentPageButton.getAttribute("aria-current") === "page"
+
+    expect(currentPageIsNotClickable).toBe(true)
+    expect(pushMock).not.toHaveBeenCalled()
+
+    expect(screen.queryByRole("button", { name: "2" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "8" })).not.toBeInTheDocument()
+  })
+
+  it("clicking a numbered page pushes target page while preserving existing query params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "ada",
+        country_code: "IN",
+        page: "5",
+        status: "active",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce({
+      data: [],
+      meta: {
+        page: 5,
+        perPage: 25,
+        totalCount: 240,
+        totalPages: 10,
+      },
+    } as unknown as Array<EmployeeListItem>)
+
+    render(<EmployeesPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: "4" }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?search=ada&country_code=IN&page=4&status=active")
     })
   })
 })
