@@ -132,6 +132,31 @@ RSpec.describe "GET /api/v1/employees", type: :request do
       expect(data.first.fetch("id")).to eq(matching_employee.id)
     end
 
+    it "filters country_code, status, job_title, and department case-insensitively" do
+      matching_employee = create(
+        :employee,
+        country_code: "US",
+        status: "inactive",
+        job_title: "Software Engineer",
+        department: "Engineering",
+        deleted_at: nil
+      )
+      create(:employee, country_code: "US", status: "active", job_title: "Software Engineer", department: "Engineering", deleted_at: nil)
+      create(:employee, country_code: "US", status: "inactive", job_title: "Staff Engineer", department: "Engineering", deleted_at: nil)
+      create(:employee, country_code: "US", status: "inactive", job_title: "Software Engineer", department: "Platform", deleted_at: nil)
+
+      get "/api/v1/employees",
+          params: { country_code: "us", status: "INACTIVE", job_title: "software engineer", department: "engineering" },
+          headers: headers
+
+      expect(response).to have_http_status(:ok)
+
+      data = json_response.fetch("data")
+
+      expect(data.length).to eq(1)
+      expect(data.first.fetch("id")).to eq(matching_employee.id)
+    end
+
     it "sorts by sort_by and sort_direction" do
       lower_salary = create(:employee, salary_cents: 100_000, deleted_at: nil)
       higher_salary = create(:employee, salary_cents: 200_000, deleted_at: nil)

@@ -39,13 +39,18 @@ module Employees
     end
 
     def apply_filters(scope)
-      scope = scope.where(country_code: @params[:country_code]) if @params[:country_code].present?
-      scope = scope.where(job_title: @params[:job_title]) if @params[:job_title].present?
-      scope = scope.where(department: @params[:department]) if @params[:department].present?
-      scope = scope.where(status: @params[:status]) if @params[:status].present?
+      scope = apply_case_insensitive_exact_filter(scope, :country_code) if @params[:country_code].present?
+      scope = apply_case_insensitive_exact_filter(scope, :job_title) if @params[:job_title].present?
+      scope = apply_case_insensitive_exact_filter(scope, :department) if @params[:department].present?
+      scope = apply_case_insensitive_exact_filter(scope, :status) if @params[:status].present?
       scope = scope.where("employees.salary_cents >= ?", @params[:salary_min]) if @params[:salary_min].present?
       scope = scope.where("employees.salary_cents <= ?", @params[:salary_max]) if @params[:salary_max].present?
       scope
+    end
+
+    def apply_case_insensitive_exact_filter(scope, field)
+      value = @params[field].to_s.strip.downcase
+      scope.where("LOWER(employees.#{field}) = ?", value)
     end
 
     def apply_term_filter(scope)

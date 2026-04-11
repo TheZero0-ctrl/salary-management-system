@@ -25,6 +25,13 @@ RSpec.describe Employees::FilterQuery do
 
         expect(results).to contain_exactly(matching_employee)
       end
+
+      it "matches country_code case-insensitively" do
+        matching_employee = create(:employee, country_code: "US", deleted_at: nil)
+        create(:employee, country_code: "IN", deleted_at: nil)
+
+        expect(described_class.call(country_code: "us")).to contain_exactly(matching_employee)
+      end
     end
 
     context "when filtering by status" do
@@ -37,6 +44,13 @@ RSpec.describe Employees::FilterQuery do
 
         expect(results).to contain_exactly(matching_employee)
       end
+
+      it "matches status case-insensitively" do
+        matching_employee = create(:employee, status: "inactive", deleted_at: nil)
+        create(:employee, status: "active", deleted_at: nil)
+
+        expect(described_class.call(status: "INACTIVE")).to contain_exactly(matching_employee)
+      end
     end
 
     context "when filtering by job_title" do
@@ -48,6 +62,13 @@ RSpec.describe Employees::FilterQuery do
 
         expect(results).to contain_exactly(matching_employee)
       end
+
+      it "matches job_title exactly and case-insensitively" do
+        matching_employee = create(:employee, job_title: "Software Engineer", deleted_at: nil)
+        create(:employee, job_title: "Senior Software Engineer", deleted_at: nil)
+
+        expect(described_class.call(job_title: "software engineer")).to contain_exactly(matching_employee)
+      end
     end
 
     context "when filtering by department" do
@@ -58,6 +79,13 @@ RSpec.describe Employees::FilterQuery do
         create(:employee, department: "Finance", deleted_at: nil)
 
         expect(results).to contain_exactly(matching_employee)
+      end
+
+      it "matches department exactly and case-insensitively" do
+        matching_employee = create(:employee, department: "Engineering", deleted_at: nil)
+        create(:employee, department: "Engineering Operations", deleted_at: nil)
+
+        expect(described_class.call(department: "engineering")).to contain_exactly(matching_employee)
       end
     end
 
