@@ -460,3 +460,34 @@
 - Updated impacted test imports after route moves:
   - `frontend/src/app/__tests__/login-page.test.tsx`
   - `frontend/src/app/__tests__/employees-page.test.tsx`
+
+## Step 7 - feat(frontend): complete employees directory baseline and auth/nav hardening
+
+### RED (tests first)
+- Expanded frontend coverage across page, API-client, and nav layers:
+  - `frontend/src/app/__tests__/employees-page.test.tsx`
+  - `frontend/src/lib/api/__tests__/auth-client.test.ts`
+  - `frontend/src/components/auth/__tests__/primary-nav.test.tsx`
+  - `frontend/src/components/auth/__tests__/auth-nav-actions.test.tsx`
+- Defined behavior for:
+  - employees loading state and server-backed rendering
+  - accessible table semantics and later scan-first columns (`Employee`, `Code`, `Department`, `Country`, `Status`)
+  - refresh-token rotation persistence and proactive refresh before first protected request
+  - active nav highlighting (`aria-current`) for Employees/Insights routes and distinct logout styling
+
+### GREEN (minimum implementation)
+- Added employees API integration and directory rendering foundation:
+  - `frontend/src/lib/api/employees-client.ts`
+  - `frontend/src/app/(workspace)/employees/page.tsx`
+- Evolved table UI from basic rows to semantic table and finalized scan-first column set for list view.
+- Fixed auth refresh flow in `frontend/src/lib/api/auth-client.ts` to:
+  - persist rotated `refresh_token` with refreshed `access_token`
+  - proactively refresh when access token is missing but refresh token exists
+- Updated nav components for clearer workspace UX:
+  - active Employees/Insights link styles in `frontend/src/components/auth/primary-nav.tsx`
+  - visually distinct logout action in `frontend/src/components/auth/auth-nav-actions.tsx`
+
+### REFACTOR
+- Consolidated table rendering through column config (`primaryEmployeeColumns`) with shared cell-style constants in `frontend/src/app/(workspace)/employees/page.tsx`.
+- Extracted auth-client helpers (`parseRefreshTokens`, `getAccessTokenForRequest`) to clarify token lifecycle intent while preserving single-flight refresh behavior.
+- Split nav style tokens into focused constants for active/inactive links and login/logout actions.

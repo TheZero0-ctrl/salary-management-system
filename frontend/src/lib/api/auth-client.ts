@@ -1,7 +1,33 @@
-import { clearSessionTokens, getAccessToken, getRefreshToken, setAccessToken } from "../auth/token-store";
+import { clearSessionTokens, getAccessToken, getRefreshToken, setAccessToken, setRefreshToken } from "../auth/token-store";
 import { getBackendApiBaseUrl } from "./base-url";
 
 let refreshInFlight: Promise<boolean> | null = null;
+
+type RefreshTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+const isNonEmptyString = (value: unknown): value is string => {
+  return typeof value === "string" && value.length > 0;
+};
+
+const parseRefreshTokens = (payload: unknown): RefreshTokens | null => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const body = payload as { access_token?: unknown; refresh_token?: unknown };
+
+  if (!isNonEmptyString(body.access_token) || !isNonEmptyString(body.refresh_token)) {
+    return null;
+  }
+
+  return {
+    accessToken: body.access_token,
+    refreshToken: body.refresh_token,
+  };
+};
 
 const withAuthorization = (init: RequestInit | undefined, accessToken: string | null): RequestInit => {
   const headers = new Headers(init?.headers);
@@ -40,13 +66,14 @@ const refreshAccessToken = async (): Promise<boolean> => {
           return failRefresh();
         }
 
-        const body = (await response.json()) as { access_token?: string };
+        const tokens = parseRefreshTokens(await response.json());
 
-        if (!body.access_token) {
+        if (!tokens) {
           return failRefresh();
         }
 
-        setAccessToken(body.access_token);
+        setAccessToken(tokens.accessToken);
+        setRefreshToken(tokens.refreshToken);
         return true;
       })
       .catch(() => {
@@ -60,8 +87,21 @@ const refreshAccessToken = async (): Promise<boolean> => {
   return refreshInFlight;
 };
 
+const getAccessTokenForRequest = async (): Promise<string | null> => {
+  const accessToken = getAccessToken();
+
+  if (accessToken || !getRefreshToken()) {
+    return accessToken;
+  }
+
+  await refreshAccessToken();
+  return getAccessToken();
+};
+
 export const authorizedFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  const initialResponse = await fetch(input, withAuthorization(init, getAccessToken()));
+  const accessToken = await getAccessTokenForRequest();
+
+  const initialResponse = await fetch(input, withAuthorization(init, accessToken));
 
   if (initialResponse.status !== 401 || !getRefreshToken()) {
     return initialResponse;

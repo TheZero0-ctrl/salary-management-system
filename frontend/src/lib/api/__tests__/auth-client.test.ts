@@ -4,6 +4,7 @@ const tokenStoreMocks = vi.hoisted(() => ({
   getAccessToken: vi.fn<() => string | null>(),
   getRefreshToken: vi.fn<() => string | null>(),
   setAccessToken: vi.fn<(token: string) => void>(),
+  setRefreshToken: vi.fn<(token: string) => void>(),
   clearSessionTokens: vi.fn<() => void>(),
 }))
 
@@ -85,10 +86,13 @@ describe("authorizedFetch", () => {
     tokenStoreMocks.getRefreshToken.mockReturnValue("refresh-token-1")
 
     const firstUnauthorizedResponse = new Response(null, { status: 401 })
-    const refreshSuccessResponse = new Response(JSON.stringify({ access_token: "access-token-new" }), {
+    const refreshSuccessResponse = new Response(
+      JSON.stringify({ access_token: "access-token-new", refresh_token: "refresh-token-rotated" }),
+      {
       status: 200,
       headers: { "Content-Type": "application/json" },
-    })
+      },
+    )
     const retriedOkResponse = new Response(null, { status: 200 })
 
     fetchMock
@@ -111,6 +115,40 @@ describe("authorizedFetch", () => {
     )
     expect(fetchMock.mock.calls[2]?.[0]).toBe("http://example.test/protected")
     expect(getHeader(fetchMock.mock.calls[2]?.[1]?.headers, "Authorization")).toBe("Bearer access-token-new")
+    expect(tokenStoreMocks.setAccessToken).toHaveBeenCalledWith("access-token-new")
+    expect(tokenStoreMocks.setRefreshToken).toHaveBeenCalledWith("refresh-token-rotated")
+  })
+
+  it("refreshes before first protected request when access token is missing", async () => {
+    tokenStoreMocks.getAccessToken.mockReturnValueOnce(null).mockReturnValueOnce("access-token-new")
+    tokenStoreMocks.getRefreshToken.mockReturnValue("refresh-token-1")
+
+    const refreshSuccessResponse = new Response(
+      JSON.stringify({ access_token: "access-token-new", refresh_token: "refresh-token-rotated" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
+    const protectedOkResponse = new Response(null, { status: 200 })
+
+    fetchMock.mockResolvedValueOnce(refreshSuccessResponse).mockResolvedValueOnce(protectedOkResponse)
+
+    const { authorizedFetch } = await loadAuthClient()
+
+    await authorizedFetch("http://example.test/protected", { method: "GET" })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${backendBaseUrl}/api/v1/session/refresh`)
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://example.test/protected")
+    expect(getHeader(fetchMock.mock.calls[1]?.[1]?.headers, "Authorization")).toBe("Bearer access-token-new")
+
+    const protectedCalls = fetchMock.mock.calls.filter(([callInput]) => {
+      const calledUrl = typeof callInput === "string" ? callInput : callInput.url
+      return calledUrl === "http://example.test/protected"
+    })
+
+    expect(protectedCalls).toHaveLength(1)
   })
 
   it("clears session and returns original 401 when refresh fails", async () => {
@@ -169,7 +207,7 @@ describe("authorizedFetch", () => {
     await Promise.resolve()
 
     refreshDeferred.resolve(
-      new Response(JSON.stringify({ access_token: "access-token-new" }), {
+      new Response(JSON.stringify({ access_token: "access-token-new", refresh_token: "refresh-token-rotated" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),

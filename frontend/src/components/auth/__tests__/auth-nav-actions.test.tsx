@@ -30,6 +30,15 @@ describe("AuthNavActions", () => {
     expect(await screen.findByRole("button", { name: "Log out" })).toBeInTheDocument()
   })
 
+  it("renders Log out with a distinct danger style token", async () => {
+    render(<AuthNavActions isAuthenticated />)
+
+    const logoutButton = await screen.findByRole("button", { name: "Log out" })
+
+    expect(logoutButton.className).toMatch(/text-red-\d{3}/)
+    expect(logoutButton).not.toHaveClass("text-black/70")
+  })
+
   it("logs out and redirects to /login when Log out is clicked", async () => {
     logoutSessionMock.mockResolvedValue()
 

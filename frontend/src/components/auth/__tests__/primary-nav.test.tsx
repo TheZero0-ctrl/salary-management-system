@@ -1,14 +1,15 @@
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import PrimaryNav from "../primary-nav"
 
-const { getRefreshTokenMock } = vi.hoisted(() => ({
+const { getRefreshTokenMock, pathnameMock } = vi.hoisted(() => ({
   getRefreshTokenMock: vi.fn<() => string | null>(),
+  pathnameMock: vi.fn<() => string>(),
 }))
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: pathnameMock,
   useRouter: () => ({
     push: vi.fn(),
   }),
@@ -20,6 +21,10 @@ vi.mock("../../../lib/auth/token-store", () => ({
 }))
 
 describe("PrimaryNav", () => {
+  beforeEach(() => {
+    pathnameMock.mockReturnValue("/")
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -47,5 +52,49 @@ describe("PrimaryNav", () => {
     ]
 
     expect(labels).toEqual(["Employees", "Insights", "Log out"])
+  })
+
+  it("marks Employees as active for /employees and keeps Insights inactive", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    pathnameMock.mockReturnValue("/employees")
+
+    render(<PrimaryNav />)
+
+    const employeesLink = await screen.findByRole("link", { name: "Employees" })
+    const insightsLink = screen.getByRole("link", { name: "Insights" })
+
+    expect(employeesLink).toHaveAttribute("aria-current", "page")
+    expect(employeesLink).toHaveClass("bg-black/10")
+    expect(insightsLink).not.toHaveAttribute("aria-current")
+    expect(insightsLink).not.toHaveClass("bg-black/10")
+  })
+
+  it("marks Employees as active for nested employee routes", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    pathnameMock.mockReturnValue("/employees/EMP-0001")
+
+    render(<PrimaryNav />)
+
+    const employeesLink = await screen.findByRole("link", { name: "Employees" })
+    const insightsLink = screen.getByRole("link", { name: "Insights" })
+
+    expect(employeesLink).toHaveAttribute("aria-current", "page")
+    expect(employeesLink).toHaveClass("bg-black/10")
+    expect(insightsLink).not.toHaveAttribute("aria-current")
+  })
+
+  it("marks Insights as active for /insights and keeps Employees inactive", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    pathnameMock.mockReturnValue("/insights")
+
+    render(<PrimaryNav />)
+
+    const insightsLink = await screen.findByRole("link", { name: "Insights" })
+    const employeesLink = screen.getByRole("link", { name: "Employees" })
+
+    expect(insightsLink).toHaveAttribute("aria-current", "page")
+    expect(insightsLink).toHaveClass("bg-black/10")
+    expect(employeesLink).not.toHaveAttribute("aria-current")
+    expect(employeesLink).not.toHaveClass("bg-black/10")
   })
 })
