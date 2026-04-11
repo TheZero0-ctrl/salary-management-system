@@ -35,6 +35,15 @@ npm run dev -- --port 3001
 
 Frontend URL: `http://localhost:3001`
 
+Optional frontend backend-base override:
+
+```bash
+# frontend/.env.local
+NEXT_PUBLIC_BACKEND_API_BASE_URL=http://127.0.0.1:3000
+```
+
+If omitted, frontend defaults to `http://127.0.0.1:3000`.
+
 ## Seed Data
 
 The backend seed creates:

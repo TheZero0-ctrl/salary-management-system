@@ -319,3 +319,60 @@
 - Updated both insights controllers to reuse the shared validation helpers:
   - `backend/app/controllers/api/v1/insights/countries_controller.rb`
   - `backend/app/controllers/api/v1/insights/segments_controller.rb`
+
+## Frontend
+
+## Step 1 - feat(auth): add login page with test harness, validation, and UI polish
+
+### RED (tests first)
+- Added minimal frontend test infrastructure and failing login specs for rendering + validation:
+  - `frontend/vitest.config.ts`
+  - `frontend/src/app/__tests__/login-page.test.tsx`
+- Updated frontend package scripts/dependencies for Vitest + RTL:
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+- Defined failures for:
+  - missing login page module import (`../login/page`)
+  - empty submit should render `Email is required` and `Password is required`
+
+### GREEN (minimum implementation)
+- Added `/login` page and implemented required behavior:
+  - `frontend/src/app/login/page.tsx`
+- Implemented accessible form fields and button text expected by tests (`Email`, `Password`, `Sign in`).
+- Implemented client-side empty-submit validation and inline error rendering.
+- Added a clean form layout aligned with app shell tokens.
+
+### REFACTOR
+- Extracted validation helpers and typed error state for readability:
+  - `LoginField`, `ValidationErrors`, `getTrimmedFormValue`, `validateLoginForm`
+  - `frontend/src/app/login/page.tsx`
+- Switched submit handler type to `SubmitEvent<HTMLFormElement>` to avoid deprecated `FormEvent` usage.
+- Polished login UI further and standardized pointer cursor behavior for buttons:
+  - `frontend/src/app/login/page.tsx`
+  - `frontend/src/app/globals.css`
+
+## Step 2 - feat(frontend): standardize login API integration with base URL
+
+### RED (tests first)
+- Extended login page specs to define API integration and submit UX contract in `frontend/src/app/__tests__/login-page.test.tsx`:
+  - invalid credentials from API should render inline `Invalid email or password`
+  - submit should call configured base URL endpoint (`NEXT_PUBLIC_API_BASE_URL` + `/session`)
+  - pending submit should disable button and show `Signing in...`
+  - rejected/network request should show fallback auth error and re-enable submit
+
+### GREEN (minimum implementation)
+- Implemented login API integration and pending-state UX in `frontend/src/app/login/page.tsx`.
+- Added centralized frontend API base URL and session client helpers:
+  - `frontend/src/lib/api/base-url.ts`
+  - `frontend/src/lib/api/session.ts`
+- Added test setup for DOM matchers used by the frontend specs:
+  - `frontend/src/test/setup.ts`
+  - `frontend/vitest.config.ts`
+- Updated frontend dev dependencies for test matcher support:
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+
+### REFACTOR
+- Standardized inline error presentation across field-level and auth-level messages using a shared `InlineError` helper in `frontend/src/app/login/page.tsx`.
+- Hardened auth error extraction to handle non-JSON failures with deterministic fallback message.
+- Kept all behavior unchanged while simplifying fallback control flow in error parsing.
