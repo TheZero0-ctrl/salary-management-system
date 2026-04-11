@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import EmployeesPage from "../(workspace)/employees/page"
@@ -15,8 +15,9 @@ type EmployeeListItem = {
   effectiveFrom?: string
 }
 
-const { pushMock, getRefreshTokenMock, listEmployeesMock } = vi.hoisted(() => ({
+const { pushMock, useSearchParamsMock, getRefreshTokenMock, listEmployeesMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),
+  useSearchParamsMock: vi.fn<() => URLSearchParams>(() => new URLSearchParams()),
   getRefreshTokenMock: vi.fn<() => string | null>(),
   listEmployeesMock: vi.fn<() => Promise<Array<EmployeeListItem>>>(),
 }))
@@ -37,6 +38,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: pushMock,
   }),
+  useSearchParams: useSearchParamsMock,
 }))
 
 vi.mock("../../lib/auth/token-store", () => ({
@@ -51,6 +53,7 @@ describe("Employees page", () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    useSearchParamsMock.mockImplementation(() => new URLSearchParams())
   })
 
   it("redirects to /login when refresh token is missing", async () => {
@@ -166,5 +169,226 @@ describe("Employees page", () => {
     expect(within(adaRow).getByRole("cell", { name: "Engineering" })).toBeVisible()
     expect(within(adaRow).getByRole("cell", { name: "United Kingdom" })).toBeVisible()
     expect(within(adaRow).getByRole("cell", { name: "Active" })).toBeVisible()
+  })
+
+  it("forwards URL search params to listEmployees on initial load", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "ada",
+        country_code: "IN",
+        department: "Engineering",
+        status: "active",
+        salary_min: "5000",
+        salary_max: "10000",
+        sort_by: "full_name",
+        sort_direction: "asc",
+        page: "2",
+        per_page: "25",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    await waitFor(() => {
+      expect(listEmployeesMock).toHaveBeenCalledWith({
+        search: "ada",
+        countryCode: "IN",
+        department: "Engineering",
+        status: "active",
+        salaryMin: 5000,
+        salaryMax: 10000,
+        sortBy: "full_name",
+        sortDirection: "asc",
+        page: 2,
+        perPage: 25,
+      })
+    })
+  })
+
+  it("treats whitespace-only search URL param as blank on initial load", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "   ",
+        country_code: "IN",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    await waitFor(() => {
+      expect(listEmployeesMock).toHaveBeenCalled()
+    })
+
+    const [filters] = listEmployeesMock.mock.calls[0]
+
+    expect(filters).toEqual(expect.objectContaining({ countryCode: "IN" }))
+    expect(filters).not.toHaveProperty("search")
+  })
+
+  it("shows a search control and pushes search query on submit", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const searchButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "Kai" } })
+    fireEvent.click(searchButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?search=Kai")
+    })
+  })
+
+  it("preserves existing URL params and updates only search on submit", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        country_code: "IN",
+        page: "2",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const searchButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "Kai" } })
+    fireEvent.click(searchButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?country_code=IN&search=Kai")
+    })
+  })
+
+  it("removes page from URL when submitting a new search while preserving non-pagination params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        country_code: "IN",
+        page: "3",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const searchButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "Kai" } })
+    fireEvent.click(searchButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?country_code=IN&search=Kai")
+    })
+  })
+
+  it("trims leading and trailing whitespace before updating search query on submit", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        country_code: "IN",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const searchButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "  Kai  " } })
+    fireEvent.click(searchButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?country_code=IN&search=Kai")
+    })
+  })
+
+  it("exposes search, country, department, and status filters and pushes all non-empty params without page on submit", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        page: "4",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const countryControl = screen.getByLabelText(/country/i)
+    const departmentControl = screen.getByLabelText(/department/i)
+    const statusControl = screen.getByLabelText(/status/i)
+    const submitButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "Kai" } })
+    fireEvent.change(countryControl, { target: { value: "IN" } })
+    fireEvent.change(departmentControl, { target: { value: "Engineering" } })
+    fireEvent.change(statusControl, { target: { value: "active" } })
+    fireEvent.click(submitButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith(
+        "/employees?search=Kai&country_code=IN&department=Engineering&status=active",
+      )
+    })
+  })
+
+  it("removes search from URL when submitting an empty search while preserving other params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        country_code: "IN",
+        page: "2",
+        search: "Kai",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const searchInput = screen.getByRole("textbox", { name: /search/i })
+    const searchButton = screen.getByRole("button", { name: /search/i })
+
+    fireEvent.change(searchInput, { target: { value: "" } })
+    fireEvent.click(searchButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?country_code=IN")
+    })
+  })
+
+  it("clears filter params and page while preserving non-filter params", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams({
+        search: "Kai",
+        country_code: "IN",
+        department: "Engineering",
+        status: "active",
+        page: "3",
+        sort_by: "full_name",
+      }),
+    )
+    listEmployeesMock.mockResolvedValueOnce([])
+
+    render(<EmployeesPage />)
+
+    const clearButton = screen.getByRole("button", { name: /clear filters/i })
+    fireEvent.click(clearButton)
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees?sort_by=full_name")
+    })
   })
 })

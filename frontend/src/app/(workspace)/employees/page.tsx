@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useProtectedRoute } from "../../../lib/auth/use-protected-route";
-import { listEmployees, type EmployeeListItem } from "../../../lib/api/employees-client";
+import {
+  listEmployees,
+  type EmployeeListItem,
+} from "../../../lib/api/employees-client";
 import { getRefreshToken } from "../../../lib/auth/token-store";
+import {
+  buildEmployeesClearFiltersUrl,
+  buildEmployeesQueryFromSearchParams,
+  buildEmployeesSearchUrl,
+  getEmployeeFilterValuesFromSearchParams,
+  type EmployeeFilterValues,
+} from "../../../lib/employees/filters";
+import { EmployeeFilters } from "../../../components/employees/employee-filters";
 
 const displayValue = (value?: string) => value || "--";
 
@@ -44,10 +56,30 @@ const primaryEmployeeColumns: EmployeeColumn[] = [
   },
 ];
 
-export default function EmployeesPage() {
+const EmployeesPageFallback = () => (
+  <section className="w-full rounded-2xl border border-black/10 bg-surface p-6 sm:p-8">
+    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Employees</p>
+    <h1 className="mt-2 text-2xl font-semibold tracking-tight">Employee Directory</h1>
+    <p className="mt-3 text-sm leading-6 text-muted">
+      Directory table, filters, and pagination behavior will be added in upcoming TDD slices.
+    </p>
+    <p className="mt-4 text-sm text-muted">Loading employees...</p>
+  </section>
+);
+
+function EmployeesPageContent() {
   useProtectedRoute();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
+  const currentFilterValues = getEmployeeFilterValuesFromSearchParams(searchParams);
   const [isLoading, setIsLoading] = useState(true);
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
+  const [filterValues, setFilterValues] = useState<EmployeeFilterValues>(currentFilterValues);
+
+  useEffect(() => {
+    setFilterValues(getEmployeeFilterValuesFromSearchParams(new URLSearchParams(searchParamsKey)));
+  }, [searchParamsKey]);
 
   useEffect(() => {
     if (!getRefreshToken()) {
@@ -56,10 +88,11 @@ export default function EmployeesPage() {
     }
 
     let isActive = true;
+    const mappedQuery = buildEmployeesQueryFromSearchParams(new URLSearchParams(searchParamsKey));
 
     const loadEmployees = async () => {
       try {
-        const employeeList = await listEmployees();
+        const employeeList = await listEmployees(mappedQuery);
 
         if (!isActive) {
           return;
@@ -78,20 +111,34 @@ export default function EmployeesPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [searchParamsKey]);
+
+  const handleSearchSubmit = () => {
+    router.push(buildEmployeesSearchUrl(searchParamsKey, filterValues));
+  };
+
+  const handleClearFilters = () => {
+    router.push(buildEmployeesClearFiltersUrl(searchParamsKey));
+  };
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-surface p-6 sm:p-8">
+    <section className="w-full rounded-2xl border border-black/10 bg-surface p-6 sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Employees</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Employee Directory</h1>
       <p className="mt-3 text-sm leading-6 text-muted">
         Directory table, filters, and pagination behavior will be added in upcoming TDD slices.
       </p>
+      <EmployeeFilters
+        values={filterValues}
+        onChange={setFilterValues}
+        onSubmit={handleSearchSubmit}
+        onClear={handleClearFilters}
+      />
       {isLoading ? (
         <p className="mt-4 text-sm text-muted">Loading employees...</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="mt-4 overflow-x-auto rounded-xl bg-surface">
+          <table className="w-full table-fixed text-left">
             <thead>
               <tr>
                 {primaryEmployeeColumns.map((column) => (
@@ -116,5 +163,13 @@ export default function EmployeesPage() {
         </div>
       )}
     </section>
+  );
+}
+
+export default function EmployeesPage() {
+  return (
+    <Suspense fallback={<EmployeesPageFallback />}>
+      <EmployeesPageContent />
+    </Suspense>
   );
 }

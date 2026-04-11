@@ -491,3 +491,38 @@
 - Consolidated table rendering through column config (`primaryEmployeeColumns`) with shared cell-style constants in `frontend/src/app/(workspace)/employees/page.tsx`.
 - Extracted auth-client helpers (`parseRefreshTokens`, `getAccessTokenForRequest`) to clarify token lifecycle intent while preserving single-flight refresh behavior.
 - Split nav style tokens into focused constants for active/inactive links and login/logout actions.
+
+## Step 8 - feat(frontend): implement full employees filter flow with URL sync and extracted filter modules
+
+### RED (tests first)
+- Expanded employees page integration coverage in `frontend/src/app/__tests__/employees-page.test.tsx` for one complete filter journey:
+  - URL query params are forwarded to `listEmployees` on initial load
+  - search submit updates URL query and preserves relevant params
+  - whitespace handling (trim on submit, ignore blank/whitespace-only search)
+  - pagination reset on filter submit (`page` removed)
+  - full filter submit behavior for `search`, `country`, `department`, `status`
+  - clear-filters behavior removes filter params while preserving non-filter params
+- Added API-client query mapping contract tests in `frontend/src/lib/api/__tests__/employees-client.test.ts`:
+  - UI query keys map to backend query keys (`country_code`, `salary_min`, `sort_by`, `per_page`, etc.)
+  - empty/undefined params are omitted from request URL
+- Fixed route-shell regression in `frontend/src/app/__tests__/route-shell-layouts.test.tsx` by extending the `next/navigation` mock (`usePathname`) to match current nav dependencies.
+
+### GREEN (minimum implementation)
+- Implemented employee list query mapping in `frontend/src/lib/api/employees-client.ts` so list requests align with backend query contract.
+- Implemented URL-driven filter behavior in `frontend/src/app/(workspace)/employees/page.tsx`:
+  - map URL params to API query input on load
+  - submit filters to URL with normalization/omission rules
+  - reset `page` when applying a new filter/search
+  - clear filter params via dedicated clear action
+- Improved employees filter UI and usability:
+  - responsive filter layout
+  - labeled controls for `search`, `country`, `department`, `status`
+  - status select options and stronger action affordances
+
+### REFACTOR
+- Extracted filter form UI into reusable component:
+  - `frontend/src/components/employees/employee-filters.tsx`
+- Extracted employees filter/query URL logic into focused helper module:
+  - `frontend/src/lib/employees/filters.ts`
+- Kept page component thinner by delegating form rendering + query/url transformations while preserving behavior:
+  - `frontend/src/app/(workspace)/employees/page.tsx`

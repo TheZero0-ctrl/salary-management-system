@@ -4,14 +4,16 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import AuthLayout from "../(auth)/layout"
 import WorkspaceLayout from "../(workspace)/layout"
 
-const { pushMock } = vi.hoisted(() => ({
+const { pushMock, usePathnameMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),
+  usePathnameMock: vi.fn<() => string>(() => "/employees"),
 }))
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: pushMock,
   }),
+  usePathname: usePathnameMock,
 }))
 
 describe("App route shells", () => {
