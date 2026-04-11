@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import PrimaryNav from "@/components/auth/primary-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,20 +39,7 @@ export default function RootLayout({
                 <p className="text-lg font-semibold tracking-tight">Salary Management</p>
               </div>
 
-              <nav aria-label="Primary" className="flex items-center gap-1">
-                <Link className="rounded-lg px-3 py-2 text-sm text-black/70 hover:bg-black/5" href="/">
-                  Home
-                </Link>
-                <Link className="rounded-lg px-3 py-2 text-sm text-black/70 hover:bg-black/5" href="/login">
-                  Login
-                </Link>
-                <Link className="rounded-lg px-3 py-2 text-sm text-black/70 hover:bg-black/5" href="/employees">
-                  Employees
-                </Link>
-                <Link className="rounded-lg px-3 py-2 text-sm text-black/70 hover:bg-black/5" href="/insights">
-                  Insights
-                </Link>
-              </nav>
+              <PrimaryNav />
             </div>
           </header>
 

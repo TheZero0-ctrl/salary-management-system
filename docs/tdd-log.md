@@ -376,3 +376,60 @@
 - Standardized inline error presentation across field-level and auth-level messages using a shared `InlineError` helper in `frontend/src/app/login/page.tsx`.
 - Hardened auth error extraction to handle non-JSON failures with deterministic fallback message.
 - Kept all behavior unchanged while simplifying fallback control flow in error parsing.
+
+## Step 3 - feat(frontend): persist tokens and redirect after successful login
+
+### RED (tests first)
+- Extended login page specs in `frontend/src/app/__tests__/login-page.test.tsx` for success-path behavior:
+  - redirect to `/employees` after successful login response
+  - persist `access_token` and `refresh_token` after successful login
+
+### GREEN (minimum implementation)
+- Updated `frontend/src/app/login/page.tsx` to parse token pair payload from successful session response.
+- Persisted session tokens with token store helpers before navigation.
+- Kept existing validation/error/loading behavior unchanged.
+
+### REFACTOR
+- Extracted `SessionResponseBody` typing and `persistSessionTokens` helper in `frontend/src/app/login/page.tsx` for clearer success-path intent.
+
+## Step 4 - feat(frontend): add protected fetch refresh mechanism and route guard
+
+### RED (tests first)
+- Added auth-client tests in `frontend/src/lib/api/__tests__/auth-client.test.ts` for:
+  - bearer header injection from access token
+  - refresh + retry behavior on `401`
+  - clear-session behavior when refresh fails
+  - single-flight refresh under concurrent `401` responses
+- Added protected-route tests in `frontend/src/app/__tests__/employees-page.test.tsx` for redirecting unauthenticated users to `/login`.
+- Added token-store unit tests in `frontend/src/lib/auth/__tests__/token-store.test.ts` to define memory-vs-storage token strategy.
+
+### GREEN (minimum implementation)
+- Added token store in `frontend/src/lib/auth/token-store.ts`:
+  - access token in memory
+  - refresh token in local storage
+  - clear helpers for logout/unauthenticated paths
+- Added `frontend/src/lib/api/auth-client.ts` with refresh-on-401 retry and single-flight refresh handling.
+- Added protected route hook `frontend/src/lib/auth/use-protected-route.ts` and applied it to:
+  - `frontend/src/app/employees/page.tsx`
+  - `frontend/src/app/insights/page.tsx`
+
+### REFACTOR
+- Reduced duplication in auth-client refresh-failure paths via helper function extraction.
+- Improved protected-route readability with explicit naming and login-path constant.
+
+## Step 5 - feat(frontend): add logout service and header logout action
+
+### RED (tests first)
+- Added logout service tests in `frontend/src/lib/auth/__tests__/session-manager.test.ts` for backend call contract and always-clear behavior.
+- Added nav auth-action tests in `frontend/src/components/auth/__tests__/auth-nav-actions.test.tsx` for:
+  - authenticated `Log out` rendering
+  - pending logout state (`Logging out...`)
+  - logout action + redirect to `/login`
+  - unauthenticated `Login` link rendering
+
+### GREEN (minimum implementation)
+- Added `frontend/src/lib/auth/session-manager.ts` to call `DELETE /api/v1/session` with bearer + refresh token and always clear tokens.
+- Added `frontend/src/components/auth/auth-nav-actions.tsx` and integrated it into `frontend/src/app/layout.tsx`.
+
+### REFACTOR
+- Performed small naming/readability cleanup in logout/auth nav logic without behavior changes.

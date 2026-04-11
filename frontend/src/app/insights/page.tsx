@@ -1,4 +1,10 @@
+"use client";
+
+import { useProtectedRoute } from "../../lib/auth/use-protected-route";
+
 export default function InsightsPage() {
+  useProtectedRoute();
+
   return (
     <section className="rounded-2xl border border-black/10 bg-surface p-6 sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Insights</p>

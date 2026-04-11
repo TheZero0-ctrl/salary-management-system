@@ -15,3 +15,12 @@
 
 ## Docs
 - I prompt Ai to create the postman collections which is really impressive.
+
+# Frontend Development
+
+## Setup
+- I created the [frontend-feature-implementation-plan.md](../frontend-feature-implementation-plan.md) with the help of AI
+
+## Implementation
+- After reviewing and making improvements on [frontend-feature-implementation-plan.md](../frontend-feature-implementation-plan.md)
+  I started running agent for doing the tdd one step at a time.

@@ -1,8 +1,10 @@
 "use client";
 
-import { SubmitEvent, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { createSession } from "../../lib/api/session";
+import { getRefreshToken, setAccessToken, setRefreshToken } from "../../lib/auth/token-store";
 
 type LoginField = "email" | "password";
 type ValidationErrors = Partial<Record<LoginField, string>>;
@@ -46,6 +48,21 @@ const getAuthErrorMessage = async (response: Response) => {
   return DEFAULT_AUTH_ERROR;
 };
 
+type SessionResponseBody = {
+  access_token?: unknown;
+  refresh_token?: unknown;
+};
+
+const persistSessionTokens = (data: SessionResponseBody) => {
+  if (typeof data.access_token === "string") {
+    setAccessToken(data.access_token);
+  }
+
+  if (typeof data.refresh_token === "string") {
+    setRefreshToken(data.refresh_token);
+  }
+};
+
 const InlineError = ({ message }: { message: string }) => (
   <p className={INLINE_ERROR_CLASS} role="alert">
     {message}
@@ -53,9 +70,16 @@ const InlineError = ({ message }: { message: string }) => (
 );
 
 export default function LoginPage() {
+  const router = useRouter();
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (getRefreshToken()) {
+      router.replace("/employees");
+    }
+  }, [router]);
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,10 +88,10 @@ export default function LoginPage() {
     const email = getTrimmedFormValue(formData, "email");
     const password = getTrimmedFormValue(formData, "password");
 
-    const nextErrors = validateLoginForm(email, password);
-    setErrors(nextErrors);
+    const validationErrors = validateLoginForm(email, password);
+    setErrors(validationErrors);
 
-    if (hasValidationErrors(nextErrors)) {
+    if (hasValidationErrors(validationErrors)) {
       return;
     }
 
@@ -77,9 +101,15 @@ export default function LoginPage() {
     try {
       const response = await createSession(email, password);
 
-      if (!response.ok) {
-        setAuthError(await getAuthErrorMessage(response));
+      if (response.ok) {
+        const data = (await response.json()) as SessionResponseBody;
+        persistSessionTokens(data);
+
+        router.push("/employees");
+        return;
       }
+
+      setAuthError(await getAuthErrorMessage(response));
     } catch {
       setAuthError(DEFAULT_AUTH_ERROR);
     } finally {

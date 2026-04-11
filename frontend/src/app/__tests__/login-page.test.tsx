@@ -2,12 +2,28 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import LoginPage from '../login/page'
+import { clearSessionTokens, getAccessToken, getRefreshToken } from '../../lib/auth/token-store'
+
+const { pushMock, replaceMock } = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  replaceMock: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: pushMock,
+    replace: replaceMock,
+  }),
+}))
 
 describe('Login page', () => {
   afterEach(() => {
     cleanup()
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
+    clearSessionTokens()
+    pushMock.mockReset()
+    replaceMock.mockReset()
   })
 
   it('renders email and password fields with a sign in button', () => {
@@ -43,6 +59,53 @@ describe('Login page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText('Invalid email or password')).toBeDefined()
+  })
+
+  it('redirects to employees after successful login with tokens', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          access_token: 'access-token',
+          refresh_token: 'refresh-token',
+        }),
+      })
+    )
+
+    render(<LoginPage />)
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/employees')
+    })
+  })
+
+  it('persists access and refresh tokens after successful login', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          access_token: 'access-token',
+          refresh_token: 'refresh-token',
+        }),
+      })
+    )
+
+    render(<LoginPage />)
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    await waitFor(() => {
+      expect(getAccessToken()).toBe('access-token')
+      expect(getRefreshToken()).toBe('refresh-token')
+    })
   })
 
   it('shows authentication error and re-enables submit when login request fails', async () => {
