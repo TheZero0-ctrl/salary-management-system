@@ -10,16 +10,22 @@ const navLinkClassName = "rounded-lg px-3 py-2 text-sm text-black/70 hover:bg-bl
 const getAuthSnapshot = () => (typeof window !== "undefined" ? Boolean(getRefreshToken()) : false)
 const getServerAuthSnapshot = () => false
 
-const PrimaryNav = () => {
+type PrimaryNavProps = {
+  showWorkspaceLinks?: boolean
+}
+
+const PrimaryNav = ({ showWorkspaceLinks = false }: PrimaryNavProps) => {
   const isAuthenticated = useSyncExternalStore(
     subscribeToAuthStateChange,
     getAuthSnapshot,
     getServerAuthSnapshot,
   )
 
+  const shouldShowWorkspaceLinks = showWorkspaceLinks || isAuthenticated
+
   return (
     <nav aria-label="Primary" className="flex items-center gap-1">
-      {isAuthenticated ? (
+      {shouldShowWorkspaceLinks ? (
         <>
           <Link className={navLinkClassName} href="/employees">
             Employees

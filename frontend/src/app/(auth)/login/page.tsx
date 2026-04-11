@@ -3,8 +3,8 @@
 import { SubmitEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { createSession } from "../../lib/api/session";
-import { getRefreshToken, setAccessToken, setRefreshToken } from "../../lib/auth/token-store";
+import { createSession } from "../../../lib/api/session";
+import { getRefreshToken, setAccessToken, setRefreshToken } from "../../../lib/auth/token-store";
 
 type LoginField = "email" | "password";
 type ValidationErrors = Partial<Record<LoginField, string>>;

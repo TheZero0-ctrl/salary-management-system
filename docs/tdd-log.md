@@ -433,3 +433,30 @@
 
 ### REFACTOR
 - Performed small naming/readability cleanup in logout/auth nav logic without behavior changes.
+
+## Step 6 - chore(frontend): add auth/workspace route-group shells and align runtime layout
+
+### RED (tests first)
+- Added route-shell integration specs in `frontend/src/app/__tests__/route-shell-layouts.test.tsx` for:
+  - protected content rendering inside a workspace shell with primary navigation links (`Employees`, `Insights`)
+  - login content rendering in an auth-only shell with no workspace header/nav
+- Initial run failed as expected because route-group layouts did not exist yet (`../(auth)/layout` and `../(workspace)/layout`).
+
+### GREEN (minimum implementation)
+- Added route-group layouts:
+  - `frontend/src/app/(auth)/layout.tsx`
+  - `frontend/src/app/(workspace)/layout.tsx`
+- Added minimal `PrimaryNav` support to force workspace links in workspace-shell tests:
+  - `frontend/src/components/auth/primary-nav.tsx` (`showWorkspaceLinks`)
+
+### REFACTOR
+- Moved pages into route groups so shells are applied at runtime while URLs remain unchanged:
+  - `frontend/src/app/(auth)/login/page.tsx`
+  - `frontend/src/app/(workspace)/employees/page.tsx`
+  - `frontend/src/app/(workspace)/insights/page.tsx`
+- Simplified root layout to global document shell only:
+  - `frontend/src/app/layout.tsx`
+- Restored SPA logout navigation in `frontend/src/components/auth/auth-nav-actions.tsx` and updated shell tests to mock router where needed.
+- Updated impacted test imports after route moves:
+  - `frontend/src/app/__tests__/login-page.test.tsx`
+  - `frontend/src/app/__tests__/employees-page.test.tsx`

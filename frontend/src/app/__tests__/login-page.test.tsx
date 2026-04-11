@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import LoginPage from '../login/page'
+import LoginPage from '../(auth)/login/page'
 import { clearSessionTokens, getAccessToken, getRefreshToken } from '../../lib/auth/token-store'
 
 const { pushMock, replaceMock } = vi.hoisted(() => ({

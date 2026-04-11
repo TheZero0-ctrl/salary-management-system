@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import EmployeesPage from "../employees/page"
+import EmployeesPage from "../(workspace)/employees/page"
 
 const { pushMock, getRefreshTokenMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),

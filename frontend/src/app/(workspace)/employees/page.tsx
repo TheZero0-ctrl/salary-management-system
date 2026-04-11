@@ -1,6 +1,6 @@
 "use client";
 
-import { useProtectedRoute } from "../../lib/auth/use-protected-route";
+import { useProtectedRoute } from "../../../lib/auth/use-protected-route";
 
 export default function EmployeesPage() {
   useProtectedRoute();
