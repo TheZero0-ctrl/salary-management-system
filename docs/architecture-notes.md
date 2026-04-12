@@ -9,6 +9,8 @@ The project is a monorepo with two apps:
 
 The backend is designed as an API first service for an HR Manager persona to manage employee records and generate salary insights.
 
+## Backend Architecture Notes
+
 ## Major Architecture Decisions
 
 ### 1) Layered Rails API (Controller -> Service/Query -> Model -> Presenter)
@@ -100,6 +102,60 @@ Tradeoff:
 
 - More tests increase runtime, but significantly improve refactor safety.
 
+## Frontend Architecture Notes
+
+### 1) App Router + Route Groups for domain separation
+
+What I chose:
+
+- Next.js App Router with explicit route groups:
+  - `(auth)` for login flow
+  - `(workspace)` for authenticated employee/insight pages
+- Shared layouts at group level for consistent shell and navigation.
+
+Why:
+
+- Keeps unauthenticated and authenticated UX flows isolated.
+- Makes feature discovery easier in a growing codebase.
+
+
+### 2) Dedicated API client layer in `src/lib/api`
+
+What I chose:
+
+- Resource-specific clients (`auth-client`, `employees-client`, `insights-client`).
+- Centralized backend base URL resolution in `base-url.ts`.
+- Shared error transformation via `error-presenter.ts`.
+
+Why:
+
+- Keeps network concerns out of page/components.
+- Makes API behavior easier to test and reuse.
+
+
+### 3) Token/session lifecycle isolated in `src/lib/auth`
+
+What I chose:
+
+- In-memory access token + refresh token in browser storage.
+- Shared helpers for login/logout/clear and auth state subscriptions.
+
+Why:
+
+- Simple, explicit auth flow for a client-rendered app.
+- Reduces duplicate token handling logic across pages/components.
+
+
+### 4) Frontend quality checks focused on behavior
+
+What I chose:
+
+- Vitest tests for pages, components, API clients, and auth/session helpers.
+
+Why:
+
+- Protects critical user flows (login, listing/filtering employees, CRUD forms, insights rendering).
+
 ## Architecture Diagrams
 
 ### Logical Component Flow
@@ -147,5 +203,4 @@ sequenceDiagram
 
 - Add salary change history/audit trail.
 - Add OpenAPI schema for stronger API contract visibility.
-- Add benchmark artifacts for p95 endpoint latency with seeded 10k data.
 - Add caching strategy if insight endpoints become high-traffic.

@@ -4,6 +4,14 @@ Monorepo for a salary management app with:
 - `backend/` -> Rails 8 JSON API
 - `frontend/` -> Next.js 16 + React 19 UI
 
+## Hosted URLs
+
+- Frontend (Vercel free plan): [https://salary-management-system-nu.vercel.app/](https://salary-management-system-nu.vercel.app/)
+- Backend (Render free plan): [https://salary-management-system-nfq0.onrender.com/up](https://salary-management-system-nfq0.onrender.com/up)
+- Demo login credentials:
+  - Email: `hr_manager@example.com`
+  - Password: `password123`
+
 ## Project Setup
 
 ### Prerequisites
@@ -12,28 +20,43 @@ Monorepo for a salary management app with:
 - Node.js `22+`
 - PostgreSQL `14+` (or compatible)
 
+### Option 1) Quick setup (recommended)
 
-### 1) Setup backend
+From the repo root:
+
+```bash
+./bin/setup
+./bin/dev
+```
+
+This installs backend/frontend dependencies, prepares and seeds the database, then starts both apps together.
+
+`./bin/dev` uses `Procfile.dev` to run both services concurrently (`backend` on `3000`, `frontend` on `4000`).
+
+### Option 2) Manual setup
+
+#### 1) Setup and start backend
 
 ```bash
 cd backend
+bundle install
 bin/rails db:prepare
+bin/rails db:seed
 bin/rails employees:seed
 bin/rails server
 ```
 
 Backend API base URL: `http://localhost:3000/api/v1`
 
-### 3) Start frontend
-
-Run frontend on a different port (recommended):
+#### 2) Setup and start frontend
 
 ```bash
 cd frontend
-npm run dev -- --port 3001
+npm install
+npm run dev
 ```
 
-Frontend URL: `http://localhost:3001`
+Frontend URL: `http://localhost:4000`
 
 Optional frontend backend-base override:
 
@@ -161,26 +184,9 @@ curl -X DELETE "http://localhost:3000/api/v1/session" \
 
 ## Documentation
 
-- Architecture decisions and tradeoffs: `docs/architecture-notes.md`
-- TDD journey log: `docs/tdd-log.md`
-- AI usage summary: `docs/ai-artifacts/ai-usage.md`
-- AI-generated implementation plan: `docs/ai-artifacts/api-feature-implementation-plan.md`
-
-## Useful Commands
-
-### Backend (`backend/`)
-
-```bash
-bundle exec rspec
-bundle exec rubocop -a
-bin/brakeman --no-pager
-bundle exec bundler-audit check --update
-```
-
-### Frontend (`frontend/`)
-
-```bash
-npm run dev
-npm run lint
-npm run build
-```
+- Backend architecture decisions and tradeoffs: [docs/architecture-notes.md#backend-architecture-notes](docs/architecture-notes.md#backend-architecture-notes)
+- Frontend architecture decisions and tradeoffs: [docs/architecture-notes.md#frontend-architecture-notes](docs/architecture-notes.md#frontend-architecture-notes)
+- Postman collection: [docs/postman/salary-management-api.postman_collection.json](docs/postman/salary-management-api.postman_collection.json)
+- TDD journey log: [docs/tdd-log.md](docs/tdd-log.md)
+- AI usage summary: [docs/ai-artifacts/ai-usage.md](docs/ai-artifacts/ai-usage.md)
+- AI-generated implementation plan: [docs/ai-artifacts/api-feature-implementation-plan.md](docs/ai-artifacts/api-feature-implementation-plan.md)
