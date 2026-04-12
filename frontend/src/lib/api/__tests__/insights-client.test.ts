@@ -129,6 +129,30 @@ describe("insights-client", () => {
     })
   })
 
+  it("includes request id in generic error message for non-validation failures", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      headers: new Headers({ "x-request-id": "req-insights-500" }),
+      json: async () => ({
+        error: {
+          message: "Internal server error",
+        },
+      }),
+    })
+
+    const client = (await loadInsightsClient()) as {
+      getCountryMetrics: (countryCode: string) => Promise<unknown>
+    }
+
+    const result = await client.getCountryMetrics("US")
+
+    expect(result).toEqual({
+      kind: "error",
+      message: expect.stringContaining("req-insights-500"),
+    })
+  })
+
   it("maps distribution response lists and bucket ranges", async () => {
     authClientMocks.authorizedFetch.mockResolvedValue({
       ok: true,

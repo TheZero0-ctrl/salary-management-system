@@ -1,15 +1,11 @@
 import { authorizedFetch } from "./auth-client";
 import { getBackendApiBaseUrl } from "./base-url";
-
-type ApiErrorDetail = {
-  field?: string;
-  message?: string;
-};
+import { extractRequestId, presentApiError } from "./error-presenter";
 
 type ApiErrorResponse = {
   error?: {
     message?: string;
-    details?: ApiErrorDetail[];
+    details?: Array<{ field?: string; message?: string }>;
   };
 };
 
@@ -136,31 +132,6 @@ export type DistributionMetricsResult =
   | InsightsValidationErrorResult
   | InsightsErrorResult;
 
-const fieldToCamelCase = (field: string): keyof InsightsFieldErrors | null => {
-  if (field === "country_code") {
-    return "countryCode";
-  }
-
-  if (field === "job_title") {
-    return "jobTitle";
-  }
-
-  if (field === "bucket_size") {
-    return "bucketSize";
-  }
-
-  return null;
-};
-
-const toFieldErrors = (details: ApiErrorDetail[]): InsightsFieldErrors => {
-  const entries = details
-    .filter((detail) => typeof detail.field === "string" && typeof detail.message === "string")
-    .map((detail) => [fieldToCamelCase(detail.field as string), detail.message as string] as const)
-    .filter((entry): entry is readonly [keyof InsightsFieldErrors, string] => entry[0] !== null);
-
-  return Object.fromEntries(entries) as InsightsFieldErrors;
-};
-
 const readErrorBody = async (response: Response): Promise<ApiErrorResponse | null> => {
   try {
     return (await response.json()) as ApiErrorResponse;
@@ -171,18 +142,21 @@ const readErrorBody = async (response: Response): Promise<ApiErrorResponse | nul
 
 const parseValidationOrError = async (response: Response): Promise<InsightsValidationErrorResult | InsightsErrorResult> => {
   const body = await readErrorBody(response);
-  const details = body?.error?.details ?? [];
+  const presentedError = presentApiError({ status: response.status, body });
 
-  if (response.status === 400 || response.status === 422) {
+  if (presentedError.kind === "validation-error") {
     return {
       kind: "validation-error",
-      fieldErrors: toFieldErrors(details),
+      fieldErrors: presentedError.fieldErrors,
     };
   }
 
+  const requestId = extractRequestId(response.headers);
+  const baseMessage = body?.error?.message ?? "Unable to load insights";
+
   return {
     kind: "error",
-    message: body?.error?.message ?? "Unable to load insights",
+    message: requestId ? `${baseMessage} (request id: ${requestId})` : baseMessage,
   };
 };
 

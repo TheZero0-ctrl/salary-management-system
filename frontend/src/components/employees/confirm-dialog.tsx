@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef } from "react";
 import { dangerButtonClassName, secondaryButtonClassName } from "../ui/button-styles";
 
 type ConfirmDialogProps = {
@@ -23,6 +24,28 @@ export const ConfirmDialog = ({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
+  const dialogId = useId();
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    cancelButtonRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+
+    previouslyFocusedRef.current?.focus();
+    previouslyFocusedRef.current = null;
+  }, [open]);
+
   if (!open) {
     return null;
   }
@@ -32,10 +55,18 @@ export const ConfirmDialog = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        aria-labelledby={`${dialogId}-title`}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || busy) {
+            return;
+          }
+
+          event.preventDefault();
+          onCancel();
+        }}
         className="w-full max-w-md rounded-xl border border-black/10 bg-white p-5 shadow-lg"
       >
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold tracking-tight">
+        <h2 id={`${dialogId}-title`} className="text-lg font-semibold tracking-tight">
           {title}
         </h2>
         <p className="mt-2 text-sm text-muted">{description}</p>
@@ -45,6 +76,7 @@ export const ConfirmDialog = ({
             type="button"
             onClick={onCancel}
             disabled={busy}
+            ref={cancelButtonRef}
             className={secondaryButtonClassName}
           >
             {cancelLabel}

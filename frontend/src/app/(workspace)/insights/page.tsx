@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   getCountryMetrics,
@@ -245,7 +245,7 @@ export default function InsightsPage() {
   const distributionLoading = distributionPanel.status === "loading";
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-br from-surface via-[#f7f2e8] to-[#efe8db] p-5 shadow-sm sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-black/10 bg-surface p-5 sm:p-7">
       <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-black/5 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-black/5 blur-3xl" />
 
@@ -271,13 +271,13 @@ export default function InsightsPage() {
       </div>
 
       {activeTab === "country" ? (
-        <section className={`mt-4 rounded-xl border bg-white/40 p-4 shadow-sm ${tabTheme.country.panel}`} role="tabpanel">
+        <section className={`mt-4 p-4 ${tabTheme.country.panel}`} role="tabpanel">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tabTheme.country.badge}`}>Country Snapshot</p>
           </div>
           <form
             className="grid gap-3 rounded-lg border border-black/10 bg-white/70 p-3 md:grid-cols-[1fr_auto_auto] md:items-end"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            onSubmit={(event) => {
               event.preventDefault();
               void runCountryInsights(countryFilters.countryCode);
             }}
@@ -338,13 +338,13 @@ export default function InsightsPage() {
       ) : null}
 
       {activeTab === "segment" ? (
-        <section className={`mt-4 rounded-xl border bg-white/40 p-4 shadow-sm ${tabTheme.segment.panel}`} role="tabpanel">
+        <section className={`mt-4 bg-white/40 p-4 ${tabTheme.segment.panel}`} role="tabpanel">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tabTheme.segment.badge}`}>Role Segment</p>
           </div>
           <form
             className="grid gap-3 rounded-lg border border-black/10 bg-white/70 p-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            onSubmit={(event) => {
               event.preventDefault();
               void runSegmentInsights(segmentFilters.countryCode, segmentFilters.jobTitle);
             }}
@@ -428,13 +428,13 @@ export default function InsightsPage() {
       ) : null}
 
       {activeTab === "distribution" ? (
-        <section className={`mt-4 rounded-xl border bg-white/40 p-4 shadow-sm ${tabTheme.distribution.panel}`} role="tabpanel">
+        <section className={`mt-4 bg-white/40 p-4 ${tabTheme.distribution.panel}`} role="tabpanel">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tabTheme.distribution.badge}`}>Salary Distribution</p>
           </div>
           <form
             className="grid gap-3 rounded-lg border border-black/10 bg-white/70 p-3 md:grid-cols-[1fr_1fr_1fr_auto_auto] md:items-end"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            onSubmit={(event) => {
               event.preventDefault();
               void runDistributionInsights(
                 distributionFilters.countryCode,
