@@ -50,7 +50,8 @@ module Employees
 
     def apply_case_insensitive_exact_filter(scope, field)
       value = @params[field].to_s.strip.downcase
-      scope.where("LOWER(employees.#{field}) = ?", value)
+      column = Employee.arel_table[field]
+      scope.where(column.lower.eq(value))
     end
 
     def apply_term_filter(scope)
