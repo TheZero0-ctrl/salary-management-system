@@ -33,6 +33,7 @@ describe("listEmployees query mapping", () => {
     await (listEmployees as unknown as (query: Record<string, unknown>) => Promise<unknown>)({
       search: "alice",
       countryCode: "IN",
+      jobTitle: "Software Engineer",
       department: "Engineering",
       status: "active",
       salaryMin: 5000,
@@ -44,7 +45,7 @@ describe("listEmployees query mapping", () => {
     })
 
     expect(authClientMocks.authorizedFetch).toHaveBeenCalledWith(
-      `${backendBaseUrl}/api/v1/employees?search=alice&country_code=IN&department=Engineering&status=active&salary_min=5000&salary_max=10000&sort_by=full_name&sort_direction=asc&page=2&per_page=25`,
+      `${backendBaseUrl}/api/v1/employees?search=alice&country_code=IN&job_title=Software+Engineer&department=Engineering&status=active&salary_min=5000&salary_max=10000&sort_by=full_name&sort_direction=asc&page=2&per_page=25`,
     )
   })
 
@@ -115,6 +116,55 @@ describe("listEmployees query mapping", () => {
         totalCount: 112,
         totalPages: 5,
       },
+    })
+  })
+})
+
+describe("getEmployeeFilterOptions mapping", () => {
+  const backendBaseUrl = "http://backend.test"
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+
+    baseUrlMocks.getBackendApiBaseUrl.mockReturnValue(backendBaseUrl)
+  })
+
+  it("calls filter options endpoint", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: {} }),
+    })
+
+    const { getEmployeeFilterOptions } = await loadEmployeesClient()
+
+    await (getEmployeeFilterOptions as unknown as () => Promise<unknown>)()
+
+    expect(authClientMocks.authorizedFetch).toHaveBeenCalledWith(
+      `${backendBaseUrl}/api/v1/employees/filter_options`,
+    )
+  })
+
+  it("maps backend keys to frontend filter options", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          country_codes: ["IN", "US"],
+          job_titles: ["Data Analyst", "Software Engineer"],
+          departments: ["Engineering", "Finance"],
+        },
+      }),
+    })
+
+    const { getEmployeeFilterOptions } = await loadEmployeesClient()
+
+    const result = await (getEmployeeFilterOptions as unknown as () => Promise<unknown>)()
+
+    expect(result).toEqual({
+      countryCodes: ["IN", "US"],
+      jobTitles: ["Data Analyst", "Software Engineer"],
+      departments: ["Engineering", "Finance"],
     })
   })
 })

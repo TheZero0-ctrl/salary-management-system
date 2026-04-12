@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import EmployeesPage from "../(workspace)/employees/page"
 
@@ -15,11 +15,12 @@ type EmployeeListItem = {
   effectiveFrom?: string
 }
 
-const { pushMock, useSearchParamsMock, getRefreshTokenMock, listEmployeesMock, deleteEmployeeByCodeMock } = vi.hoisted(() => ({
+const { pushMock, useSearchParamsMock, getRefreshTokenMock, listEmployeesMock, getEmployeeFilterOptionsMock, deleteEmployeeByCodeMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),
   useSearchParamsMock: vi.fn<() => URLSearchParams>(() => new URLSearchParams()),
   getRefreshTokenMock: vi.fn<() => string | null>(),
   listEmployeesMock: vi.fn<() => Promise<Array<EmployeeListItem>>>(),
+  getEmployeeFilterOptionsMock: vi.fn<() => Promise<{ countryCodes: string[]; jobTitles: string[]; departments: string[] }>>(),
   deleteEmployeeByCodeMock: vi.fn<(employeeCode: string) => Promise<{ kind: "deleted" | "not-found" | "error" }>>(),
 }))
 
@@ -48,10 +49,19 @@ vi.mock("../../lib/auth/token-store", () => ({
 
 vi.mock("../../lib/api/employees-client", () => ({
   listEmployees: listEmployeesMock,
+  getEmployeeFilterOptions: getEmployeeFilterOptionsMock,
   deleteEmployeeByCode: deleteEmployeeByCodeMock,
 }))
 
 describe("Employees page", () => {
+  beforeEach(() => {
+    getEmployeeFilterOptionsMock.mockResolvedValue({
+      countryCodes: ["IN", "US"],
+      jobTitles: ["Data Analyst", "Software Engineer"],
+      departments: ["Engineering", "Finance"],
+    })
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -438,7 +448,7 @@ describe("Employees page", () => {
     })
   })
 
-  it("exposes search, country, department, and status filters and pushes all non-empty params without page on submit", async () => {
+  it("exposes search, country, job title, department, and status filters and pushes all non-empty params without page on submit", async () => {
     getRefreshTokenMock.mockReturnValue("refresh-token")
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams({
@@ -451,19 +461,25 @@ describe("Employees page", () => {
 
     const searchInput = screen.getByRole("textbox", { name: /search/i })
     const countryControl = screen.getByLabelText(/country/i)
+    const jobTitleControl = screen.getByLabelText(/job title/i)
     const departmentControl = screen.getByLabelText(/department/i)
     const statusControl = screen.getByLabelText(/status/i)
     const submitButton = screen.getByRole("button", { name: /search/i })
 
+    await screen.findByRole("option", { name: "IN" })
+    await screen.findByRole("option", { name: "Data Analyst" })
+    await screen.findByRole("option", { name: "Engineering" })
+
     fireEvent.change(searchInput, { target: { value: "Kai" } })
     fireEvent.change(countryControl, { target: { value: "IN" } })
+    fireEvent.change(jobTitleControl, { target: { value: "Data Analyst" } })
     fireEvent.change(departmentControl, { target: { value: "Engineering" } })
     fireEvent.change(statusControl, { target: { value: "active" } })
     fireEvent.click(submitButton)
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        "/employees?search=Kai&country_code=IN&department=Engineering&status=active",
+        "/employees?search=Kai&country_code=IN&job_title=Data+Analyst&department=Engineering&status=active",
       )
     })
   })

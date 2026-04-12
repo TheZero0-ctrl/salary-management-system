@@ -647,3 +647,48 @@
 - Consolidated API error and field-error normalization in `frontend/src/lib/api/insights-client.ts` to keep endpoint methods focused.
 - Extracted reusable metric/formatting helpers in `frontend/src/app/(workspace)/insights/page.tsx` for readability without behavior changes.
 - Stabilized async initialization and tests to avoid effect/race flakiness while preserving user-visible behavior.
+
+## Step 12 - feat(frontend): backend-driven filter options + tabbed insights + production chart UX
+
+### RED (tests first)
+- Expanded failing coverage to define one full workflow slice spanning backend contract, frontend filters, and insights visual behavior:
+  - `backend/spec/requests/api/v1/employees/filter_options_spec.rb`
+  - `frontend/src/lib/api/__tests__/employees-client.test.ts`
+  - `frontend/src/app/__tests__/employees-page.test.tsx`
+  - `frontend/src/app/__tests__/insights-page.test.tsx`
+- Defined behavior for:
+  - secured filter-options endpoint (`401` unauthenticated, `403` non-hr-manager, `200` hr_manager)
+  - distinct/sorted `country_codes`, `job_titles`, and `departments` sourced from non-deleted employees
+  - employees filter UX using backend option lists (country/job-title/department dropdowns)
+  - tab-specific insights filters (`Country`, `Segment`, `Distribution`) with contract-preserving required fields
+  - chart presence and chart-first rendering states on successful insights responses
+
+### GREEN (minimum implementation)
+- Added backend filter-options API endpoint and authorization wiring:
+  - `backend/config/routes.rb`
+  - `backend/app/controllers/api/v1/employees_controller.rb`
+  - `backend/app/queries/employees/filter_options_query.rb`
+  - `backend/app/policies/employee_policy.rb`
+- Added frontend API support for options and mapped payload keys:
+  - `frontend/src/lib/api/employees-client.ts`
+  - `frontend/src/lib/api/__tests__/employees-client.test.ts`
+- Updated employees page filters to backend-driven dropdowns and added `job_title` filter URL/query handling:
+  - `frontend/src/components/employees/employee-filters.tsx`
+  - `frontend/src/lib/employees/filters.ts`
+  - `frontend/src/app/(workspace)/employees/page.tsx`
+  - `frontend/src/app/__tests__/employees-page.test.tsx`
+- Reworked insights page into tab-based, filter-scoped workflows:
+  - `frontend/src/app/(workspace)/insights/page.tsx`
+- Added production charting integration using Recharts:
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+  - `frontend/src/components/insights/country-snapshot-chart.tsx`
+  - `frontend/src/components/insights/segment-percentile-chart.tsx`
+  - `frontend/src/components/insights/distribution-charts.tsx`
+- Stabilized chart test/runtime environment for jsdom:
+  - `frontend/src/test/setup.ts`
+
+### REFACTOR
+- Simplified Insights into chart-first presentation by removing dense duplicate metric blocks and keeping lightweight contextual chips.
+- Improved chart readability with stronger sizing, axis labels, legends/tooltips, and responsive overflow behavior while preserving neutral, app-consistent styling.
+- Unified visual language across tabs (no per-tab color divergence), then fixed filter-row alignment and final graph polish without changing API behavior.

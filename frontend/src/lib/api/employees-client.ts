@@ -104,6 +104,7 @@ const getEmployeeByCodeFailureResult = (statusCode: number): GetEmployeeByCodeRe
 export type ListEmployeesQuery = {
   search?: string | null;
   countryCode?: string | null;
+  jobTitle?: string | null;
   department?: string | null;
   status?: string | null;
   salaryMin?: number | null;
@@ -121,6 +122,20 @@ export type EmployeesPaginationMeta = {
   totalPages: number;
 };
 
+type EmployeeFilterOptionsResponse = {
+  data?: {
+    country_codes?: string[];
+    job_titles?: string[];
+    departments?: string[];
+  };
+};
+
+export type EmployeeFilterOptions = {
+  countryCodes: string[];
+  jobTitles: string[];
+  departments: string[];
+};
+
 export type ListEmployeesResult = {
   data: EmployeeListItem[];
   meta?: EmployeesPaginationMeta;
@@ -129,6 +144,7 @@ export type ListEmployeesResult = {
 const LIST_EMPLOYEES_QUERY_PARAM_MAPPINGS: ReadonlyArray<readonly [string, keyof ListEmployeesQuery]> = [
   ["search", "search"],
   ["country_code", "countryCode"],
+  ["job_title", "jobTitle"],
   ["department", "department"],
   ["status", "status"],
   ["salary_min", "salaryMin"],
@@ -246,6 +262,27 @@ export const listEmployees = async (query?: ListEmployeesQuery): Promise<ListEmp
   return {
     data: (body.data ?? []).map(toEmployeeListItem),
     meta,
+  };
+};
+
+export const getEmployeeFilterOptions = async (): Promise<EmployeeFilterOptions> => {
+  const url = `${getBackendApiBaseUrl()}/api/v1/employees/filter_options`;
+  const response = await authorizedFetch(url);
+
+  if (!response.ok) {
+    return {
+      countryCodes: [],
+      jobTitles: [],
+      departments: [],
+    };
+  }
+
+  const body = (await response.json()) as EmployeeFilterOptionsResponse;
+
+  return {
+    countryCodes: body.data?.country_codes ?? [],
+    jobTitles: body.data?.job_titles ?? [],
+    departments: body.data?.departments ?? [],
   };
 };
 

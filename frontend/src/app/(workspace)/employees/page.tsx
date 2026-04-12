@@ -7,7 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useProtectedRoute } from "../../../lib/auth/use-protected-route";
 import {
   deleteEmployeeByCode,
+  getEmployeeFilterOptions,
   listEmployees,
+  type EmployeeFilterOptions,
   type EmployeesPaginationMeta,
   type EmployeeListItem,
 } from "../../../lib/api/employees-client";
@@ -87,6 +89,11 @@ function EmployeesPageContent() {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [paginationMeta, setPaginationMeta] = useState<EmployeesPaginationMeta | null>(null);
   const [filterValues, setFilterValues] = useState<EmployeeFilterValues>(currentFilterValues);
+  const [filterOptions, setFilterOptions] = useState<EmployeeFilterOptions>({
+    countryCodes: [],
+    jobTitles: [],
+    departments: [],
+  });
   const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
@@ -140,6 +147,30 @@ function EmployeesPageContent() {
       isActive = false;
     };
   }, [searchParamsKey]);
+
+  useEffect(() => {
+    if (!getRefreshToken()) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadFilterOptions = async () => {
+      const options = await getEmployeeFilterOptions();
+
+      if (!isActive) {
+        return;
+      }
+
+      setFilterOptions(options);
+    };
+
+    void loadFilterOptions();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleSearchSubmit = () => {
     router.push(buildEmployeesSearchUrl(searchParamsKey, filterValues));
@@ -223,6 +254,7 @@ function EmployeesPageContent() {
       </div>
       <EmployeeFilters
         values={filterValues}
+        options={filterOptions}
         onChange={setFilterValues}
         onSubmit={handleSearchSubmit}
         onClear={handleClearFilters}

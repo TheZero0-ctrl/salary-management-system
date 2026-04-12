@@ -3,6 +3,7 @@ import type { ListEmployeesQuery } from "../api/employees-client";
 export type EmployeeFilterValues = {
   search: string;
   countryCode: string;
+  jobTitle: string;
   department: string;
   status: string;
 };
@@ -10,10 +11,11 @@ export type EmployeeFilterValues = {
 const EMPLOYEES_PATH = "/employees";
 const SEARCH_PARAM_NAME = "search";
 const COUNTRY_PARAM_NAME = "country_code";
+const JOB_TITLE_PARAM_NAME = "job_title";
 const DEPARTMENT_PARAM_NAME = "department";
 const STATUS_PARAM_NAME = "status";
 const PAGE_PARAM_NAME = "page";
-const FILTER_PARAM_NAMES = [SEARCH_PARAM_NAME, COUNTRY_PARAM_NAME, DEPARTMENT_PARAM_NAME, STATUS_PARAM_NAME] as const;
+const FILTER_PARAM_NAMES = [SEARCH_PARAM_NAME, COUNTRY_PARAM_NAME, JOB_TITLE_PARAM_NAME, DEPARTMENT_PARAM_NAME, STATUS_PARAM_NAME] as const;
 const SEARCH_SUBMIT_RESET_PARAM_NAMES = [PAGE_PARAM_NAME] as const;
 const CLEAR_FILTER_RESET_PARAM_NAMES = [...SEARCH_SUBMIT_RESET_PARAM_NAMES, ...FILTER_PARAM_NAMES] as const;
 
@@ -62,6 +64,7 @@ export const getEmployeeFilterValuesFromSearchParams = (
 ): EmployeeFilterValues => ({
   search: searchParams.get(SEARCH_PARAM_NAME) ?? "",
   countryCode: searchParams.get(COUNTRY_PARAM_NAME) ?? "",
+  jobTitle: searchParams.get(JOB_TITLE_PARAM_NAME) ?? "",
   department: searchParams.get(DEPARTMENT_PARAM_NAME) ?? "",
   status: searchParams.get(STATUS_PARAM_NAME) ?? "",
 });
@@ -73,6 +76,7 @@ export const buildEmployeesQueryFromSearchParams = (
 
   const search = maybeStringParam(searchParams.get("search"));
   const countryCode = maybeStringParam(searchParams.get("country_code"));
+  const jobTitle = maybeStringParam(searchParams.get("job_title"));
   const department = maybeStringParam(searchParams.get("department"));
   const status = maybeStringParam(searchParams.get("status"));
   const salaryMin = parseNumberParam(searchParams.get("salary_min"));
@@ -84,6 +88,7 @@ export const buildEmployeesQueryFromSearchParams = (
 
   if (search !== undefined) query.search = search;
   if (countryCode !== undefined) query.countryCode = countryCode;
+  if (jobTitle !== undefined) query.jobTitle = jobTitle;
   if (department !== undefined) query.department = department;
   if (status !== undefined) query.status = status;
   if (salaryMin !== undefined) query.salaryMin = salaryMin;
@@ -102,6 +107,7 @@ export const buildEmployeesSearchUrl = (currentSearchParams: string, filterValue
   removeQueryParams(nextSearchParams, SEARCH_SUBMIT_RESET_PARAM_NAMES);
   setOrDeleteNormalizedStringParam(nextSearchParams, SEARCH_PARAM_NAME, filterValues.search);
   setOrDeleteNormalizedStringParam(nextSearchParams, COUNTRY_PARAM_NAME, filterValues.countryCode);
+  setOrDeleteNormalizedStringParam(nextSearchParams, JOB_TITLE_PARAM_NAME, filterValues.jobTitle);
   setOrDeleteNormalizedStringParam(nextSearchParams, DEPARTMENT_PARAM_NAME, filterValues.department);
   setOrDeleteNormalizedStringParam(nextSearchParams, STATUS_PARAM_NAME, filterValues.status);
 
