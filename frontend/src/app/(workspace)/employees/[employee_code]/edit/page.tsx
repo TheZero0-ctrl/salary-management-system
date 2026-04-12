@@ -3,7 +3,7 @@
 import { type SubmitEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { getEmployeeByCode, updateEmployee } from "../../../../../lib/api/employees-client";
+import { type EmployeeListItem, getEmployeeByCode, updateEmployee } from "../../../../../lib/api/employees-client";
 import { useProtectedRoute } from "../../../../../lib/auth/use-protected-route";
 import {
   normalizeEmployeeFormValues,
@@ -31,6 +31,20 @@ export default function EmployeeEditPage() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const applyEmployeeToForm = (employee: EmployeeListItem) => {
+    setFullName(employee.fullName ?? "");
+    setEmployeeCode(employee.employeeCode ?? "");
+    setJobTitle(employee.jobTitle ?? "");
+    setCountry(employee.country ?? "");
+    setDepartment(employee.department ?? "");
+    setEmploymentType(employee.employmentType ?? "");
+    setSalary(employee.salary === undefined ? "" : String(employee.salary));
+    setStatus(employee.status ?? "");
+    setEffectiveFrom(employee.effectiveFrom ?? "");
+    setHireDate(employee.hireDate ?? "");
+    setLastSalaryReviewDate(employee.lastSalaryReviewDate ?? "");
+  };
+
   useEffect(() => {
     const loadEmployee = async () => {
       const result = await getEmployeeByCode(employeeCodeFromRoute);
@@ -39,17 +53,7 @@ export default function EmployeeEditPage() {
         return;
       }
 
-      setFullName(result.employee.fullName ?? "");
-      setEmployeeCode(result.employee.employeeCode ?? "");
-      setJobTitle(result.employee.jobTitle ?? "");
-      setCountry(result.employee.country ?? "");
-      setDepartment(result.employee.department ?? "");
-      setEmploymentType(result.employee.employmentType ?? "");
-      setSalary(result.employee.salary === undefined ? "" : String(result.employee.salary));
-      setStatus(result.employee.status ?? "");
-      setEffectiveFrom(result.employee.effectiveFrom ?? "");
-      setHireDate(result.employee.hireDate ?? "");
-      setLastSalaryReviewDate(result.employee.lastSalaryReviewDate ?? "");
+      applyEmployeeToForm(result.employee);
     };
 
     void loadEmployee();
@@ -97,6 +101,11 @@ export default function EmployeeEditPage() {
 
       if (result.kind === "duplicate-employee-code") {
         setUpdateError(result.message);
+        return;
+      }
+
+      if (result.kind === "not-found") {
+        setUpdateError("Employee no longer exists");
         return;
       }
 

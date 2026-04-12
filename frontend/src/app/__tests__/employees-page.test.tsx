@@ -180,6 +180,74 @@ describe("Employees page", () => {
     expect(screen.getByRole("button", { name: "Delete" })).toBeVisible()
   })
 
+  it("removes employee row and shows success feedback after confirming delete", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+
+    const employeesDeferred = createDeferred<Array<EmployeeListItem>>()
+    listEmployeesMock.mockReturnValueOnce(employeesDeferred.promise)
+    deleteEmployeeByCodeMock.mockResolvedValueOnce({ kind: "deleted" })
+
+    render(<EmployeesPage />)
+
+    employeesDeferred.resolve([
+      {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    ])
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading employees/i))
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
+
+    const deleteDialog = screen.getByRole("dialog", { name: /delete employee/i })
+    fireEvent.click(within(deleteDialog).getByRole("button", { name: /^delete$/i }))
+
+    await waitFor(() => {
+      expect(deleteEmployeeByCodeMock).toHaveBeenCalledWith("EMP-0001")
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole("cell", { name: "Ada Lovelace" })).not.toBeInTheDocument()
+    })
+
+    expect(await screen.findByText(/employee deleted/i)).toBeVisible()
+  })
+
+  it("removes stale employee row and shows already-removed feedback when delete returns not-found", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+
+    const employeesDeferred = createDeferred<Array<EmployeeListItem>>()
+    listEmployeesMock.mockReturnValueOnce(employeesDeferred.promise)
+    deleteEmployeeByCodeMock.mockResolvedValueOnce({ kind: "not-found" })
+
+    render(<EmployeesPage />)
+
+    employeesDeferred.resolve([
+      {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    ])
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading employees/i))
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
+
+    const deleteDialog = screen.getByRole("dialog", { name: /delete employee/i })
+    fireEvent.click(within(deleteDialog).getByRole("button", { name: /^delete$/i }))
+
+    await waitFor(() => {
+      expect(deleteEmployeeByCodeMock).toHaveBeenCalledWith("EMP-0001")
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole("cell", { name: "Ada Lovelace" })).not.toBeInTheDocument()
+    })
+
+    expect(await screen.findByText(/already removed/i)).toBeVisible()
+  })
+
   it("renders only primary business columns and one employee row after loading", async () => {
     getRefreshTokenMock.mockReturnValue("refresh-token")
 

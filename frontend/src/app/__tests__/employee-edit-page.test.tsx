@@ -169,4 +169,29 @@ describe("Employee edit page", () => {
     expect(await screen.findByText(/employee code has already been taken/i)).toBeVisible()
     expect(pushMock).not.toHaveBeenCalledWith("/employees/EMP-0001")
   })
+
+  it("shows no-longer-exists feedback and stays on page when update returns not-found", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    getEmployeeByCodeMock.mockResolvedValueOnce({
+      kind: "found",
+      employee: {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+        jobTitle: "Staff Engineer",
+        country: "IN",
+        employmentType: "full_time",
+        salary: 50000,
+        status: "active",
+        effectiveFrom: "2024-01-01",
+      },
+    })
+    updateEmployeeMock.mockResolvedValueOnce({ kind: "not-found" })
+
+    render(<EmployeeEditPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /save changes/i }))
+
+    expect(await screen.findByText(/no longer exists/i)).toBeVisible()
+    expect(pushMock).not.toHaveBeenCalledWith("/employees/EMP-0001")
+  })
 })

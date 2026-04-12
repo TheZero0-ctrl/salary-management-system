@@ -53,6 +53,7 @@ type EmployeeMutationApiError = {
 
 type EmployeeMutationErrorResponse = {
   errors?: EmployeeMutationApiError[];
+  details?: EmployeeMutationApiError[];
 };
 
 export type GetEmployeeByCodeResult =
@@ -171,8 +172,13 @@ const toEmployeeMutationApiPayload = (payload: EmployeeMutationPayload) => {
   return Object.fromEntries(entries.filter(([, value]) => value !== undefined));
 };
 
-const fieldKeyToCamelCase = (field: string) =>
-  field.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
+const fieldKeyToCamelCase = (field: string) => {
+  if (field === "salary_cents") {
+    return "salary";
+  }
+
+  return field.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
+};
 
 const readEmployeeDetail = async (response: Response): Promise<EmployeeApiItem | undefined> => {
   try {
@@ -186,11 +192,21 @@ const readEmployeeDetail = async (response: Response): Promise<EmployeeApiItem |
 const readMutationErrors = async (response: Response) => {
   try {
     const body = (await response.json()) as EmployeeMutationErrorResponse;
-    return body.errors ?? [];
+    return body.errors ?? body.details ?? [];
   } catch {
     return [];
   }
 };
+
+const toValidationFieldErrors = (errors: EmployeeMutationApiError[]) =>
+  Object.fromEntries(
+    errors
+      .filter((error) => typeof error.field === "string" && typeof error.message === "string")
+      .map((error) => [fieldKeyToCamelCase(error.field as string), error.message as string]),
+  );
+
+const getDuplicateEmployeeCodeMessage = (errors: EmployeeMutationApiError[]) =>
+  errors.find((error) => typeof error.message === "string")?.message ?? "Employee code has already been taken";
 
 export const listEmployees = async (query?: ListEmployeesQuery): Promise<ListEmployeesResult> => {
   const params = new URLSearchParams();
@@ -280,19 +296,13 @@ export const createEmployee = async (payload: EmployeeMutationPayload): Promise<
   const errors = await readMutationErrors(response);
 
   if (response.status === 422) {
-    const fieldErrors = Object.fromEntries(
-      errors
-        .filter((error) => typeof error.field === "string" && typeof error.message === "string")
-        .map((error) => [fieldKeyToCamelCase(error.field as string), error.message as string]),
-    );
-
-    return { kind: "validation-error", fieldErrors };
+    return { kind: "validation-error", fieldErrors: toValidationFieldErrors(errors) };
   }
 
   if (response.status === 409) {
     return {
       kind: "duplicate-employee-code",
-      message: errors.find((error) => typeof error.message === "string")?.message ?? "Employee code has already been taken",
+      message: getDuplicateEmployeeCodeMessage(errors),
     };
   }
 
@@ -321,19 +331,13 @@ export const updateEmployee = async (
   const errors = await readMutationErrors(response);
 
   if (response.status === 422) {
-    const fieldErrors = Object.fromEntries(
-      errors
-        .filter((error) => typeof error.field === "string" && typeof error.message === "string")
-        .map((error) => [fieldKeyToCamelCase(error.field as string), error.message as string]),
-    );
-
-    return { kind: "validation-error", fieldErrors };
+    return { kind: "validation-error", fieldErrors: toValidationFieldErrors(errors) };
   }
 
   if (response.status === 409) {
     return {
       kind: "duplicate-employee-code",
-      message: errors.find((error) => typeof error.message === "string")?.message ?? "Employee code has already been taken",
+      message: getDuplicateEmployeeCodeMessage(errors),
     };
   }
 

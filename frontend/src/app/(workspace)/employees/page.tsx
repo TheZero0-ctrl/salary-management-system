@@ -27,6 +27,8 @@ import {
 } from "../../../components/ui/button-styles";
 
 const displayValue = (value?: string) => value || "--";
+const removeEmployeeByCode = (employeeCode: string) =>
+  (employee: EmployeeListItem) => employee.employeeCode !== employeeCode;
 
 type EmployeeColumn = {
   label: string;
@@ -88,6 +90,7 @@ function EmployeesPageContent() {
   const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
+  const [deleteFeedbackMessage, setDeleteFeedbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setFilterValues(getEmployeeFilterValuesFromSearchParams(new URLSearchParams(searchParamsKey)));
@@ -172,17 +175,15 @@ function EmployeesPageContent() {
       const result = await deleteEmployeeByCode(deleteTargetCode);
 
       if (result.kind === "deleted") {
-        setEmployees((previousEmployees) =>
-          previousEmployees.filter((employee) => employee.employeeCode !== deleteTargetCode),
-        );
+        setEmployees((previousEmployees) => previousEmployees.filter(removeEmployeeByCode(deleteTargetCode)));
+        setDeleteFeedbackMessage("Employee deleted");
         setDeleteTargetCode(null);
         return;
       }
 
       if (result.kind === "not-found") {
-        setEmployees((previousEmployees) =>
-          previousEmployees.filter((employee) => employee.employeeCode !== deleteTargetCode),
-        );
+        setEmployees((previousEmployees) => previousEmployees.filter(removeEmployeeByCode(deleteTargetCode)));
+        setDeleteFeedbackMessage("Employee was already removed");
         setDeleteTargetCode(null);
         return;
       }
@@ -226,6 +227,7 @@ function EmployeesPageContent() {
         onSubmit={handleSearchSubmit}
         onClear={handleClearFilters}
       />
+      {deleteFeedbackMessage ? <p className="mt-4 text-sm text-muted">{deleteFeedbackMessage}</p> : null}
       {isLoading ? (
         <p className="mt-4 text-sm text-muted">Loading employees...</p>
       ) : (

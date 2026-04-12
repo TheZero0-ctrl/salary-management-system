@@ -616,3 +616,34 @@
   - applied across form actions, filters, list actions, and confirmation dialogs
 - Preserved previous pagination button appearance per UX preference while keeping other actions standardized:
   - `frontend/src/app/(workspace)/employees/page.tsx`
+
+## Step 11 - feat(frontend): insights dashboard (countries, segments, distributions)
+
+### RED (tests first)
+- Added/expanded failing insights specs for page behavior and API contract mapping:
+  - `frontend/src/app/__tests__/insights-page.test.tsx`
+  - `frontend/src/lib/api/__tests__/insights-client.test.ts`
+- Defined behavior for:
+  - initial loading states across all three insight panels
+  - successful rendering of country/segment/distribution metrics
+  - backend validation mapping for `country_code`, `job_title`, and `bucket_size`
+  - retry/refresh behavior through repeated submissions
+  - filter-driven request mapping (`countryCode`, `jobTitle`, `bucketSize`)
+
+### GREEN (minimum implementation)
+- Implemented full insights API client integration with typed result unions:
+  - `frontend/src/lib/api/insights-client.ts`
+  - countries: `GET /api/v1/insights/countries`
+  - segments: `GET /api/v1/insights/segments`
+  - distributions: `GET /api/v1/insights/distributions`
+- Implemented production-ready insights page with protected access and actionable UI states:
+  - `frontend/src/app/(workspace)/insights/page.tsx`
+  - filter form (`country code`, `job title`, `bucket size`)
+  - loading, validation, empty-data, and error states
+  - computed timestamp rendering and metric formatting
+  - panel outputs for country stats, segment percentiles, and distribution buckets/top-bottom countries
+
+### REFACTOR
+- Consolidated API error and field-error normalization in `frontend/src/lib/api/insights-client.ts` to keep endpoint methods focused.
+- Extracted reusable metric/formatting helpers in `frontend/src/app/(workspace)/insights/page.tsx` for readability without behavior changes.
+- Stabilized async initialization and tests to avoid effect/race flakiness while preserving user-visible behavior.

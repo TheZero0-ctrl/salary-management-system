@@ -322,6 +322,47 @@ describe("createEmployee mutation mapping", () => {
     })
   })
 
+  it("maps 422 create validation details payload with snake_case fields to frontend field errors", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        details: [
+          {
+            field: "salary_cents",
+            message: "must be greater than 0",
+          },
+          {
+            field: "full_name",
+            message: "can't be blank",
+          },
+          {
+            field: "last_salary_review_date",
+            message: "must be in the past",
+          },
+        ],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      createEmployee: (payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.createEmployee({
+      fullName: "",
+      employeeCode: "EMP-0001",
+    })
+
+    expect(result).toEqual({
+      kind: "validation-error",
+      fieldErrors: {
+        salary: "must be greater than 0",
+        fullName: "can't be blank",
+        lastSalaryReviewDate: "must be in the past",
+      },
+    })
+  })
+
   it("returns duplicate-code outcome for 409 create response", async () => {
     authClientMocks.authorizedFetch.mockResolvedValue({
       ok: false,
