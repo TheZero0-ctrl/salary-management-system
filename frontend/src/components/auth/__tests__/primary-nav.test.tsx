@@ -69,7 +69,7 @@ describe("PrimaryNav", () => {
     expect(insightsLink).not.toHaveClass("bg-black/10")
   })
 
-  it("marks Employees as active for nested employee routes", async () => {
+  it("keeps Employees inactive for nested employee routes", async () => {
     getRefreshTokenMock.mockReturnValue("refresh-token")
     pathnameMock.mockReturnValue("/employees/EMP-0001")
 
@@ -78,8 +78,8 @@ describe("PrimaryNav", () => {
     const employeesLink = await screen.findByRole("link", { name: "Employees" })
     const insightsLink = screen.getByRole("link", { name: "Insights" })
 
-    expect(employeesLink).toHaveAttribute("aria-current", "page")
-    expect(employeesLink).toHaveClass("bg-black/10")
+    expect(employeesLink).not.toHaveAttribute("aria-current")
+    expect(employeesLink).not.toHaveClass("bg-black/10")
     expect(insightsLink).not.toHaveAttribute("aria-current")
   })
 

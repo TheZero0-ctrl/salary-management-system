@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { useProtectedRoute } from "../../../lib/auth/use-protected-route";
 import {
+  deleteEmployeeByCode,
   listEmployees,
   type EmployeesPaginationMeta,
   type EmployeeListItem,
@@ -19,6 +20,11 @@ import {
   type EmployeeFilterValues,
 } from "../../../lib/employees/filters";
 import { EmployeeFilters } from "../../../components/employees/employee-filters";
+import { ConfirmDialog } from "../../../components/employees/confirm-dialog";
+import {
+  primaryButtonClassName,
+  subtleTextButtonClassName,
+} from "../../../components/ui/button-styles";
 
 const displayValue = (value?: string) => value || "--";
 
@@ -79,6 +85,9 @@ function EmployeesPageContent() {
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [paginationMeta, setPaginationMeta] = useState<EmployeesPaginationMeta | null>(null);
   const [filterValues, setFilterValues] = useState<EmployeeFilterValues>(currentFilterValues);
+  const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setFilterValues(getEmployeeFilterValuesFromSearchParams(new URLSearchParams(searchParamsKey)));
@@ -137,6 +146,53 @@ function EmployeesPageContent() {
     router.push(buildEmployeesClearFiltersUrl(searchParamsKey));
   };
 
+  const handleDeleteClick = (employeeCode: string) => {
+    setDeleteTargetCode(employeeCode);
+    setDeleteErrorMessage(null);
+  };
+
+  const handleDeleteCancel = () => {
+    if (isDeletingEmployee) {
+      return;
+    }
+
+    setDeleteTargetCode(null);
+    setDeleteErrorMessage(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetCode) {
+      return;
+    }
+
+    setIsDeletingEmployee(true);
+    setDeleteErrorMessage(null);
+
+    try {
+      const result = await deleteEmployeeByCode(deleteTargetCode);
+
+      if (result.kind === "deleted") {
+        setEmployees((previousEmployees) =>
+          previousEmployees.filter((employee) => employee.employeeCode !== deleteTargetCode),
+        );
+        setDeleteTargetCode(null);
+        return;
+      }
+
+      if (result.kind === "not-found") {
+        setEmployees((previousEmployees) =>
+          previousEmployees.filter((employee) => employee.employeeCode !== deleteTargetCode),
+        );
+        setDeleteTargetCode(null);
+        return;
+      }
+
+      setDeleteErrorMessage("Unable to delete employee");
+    } finally {
+      setIsDeletingEmployee(false);
+    }
+  };
+
   const updatePage = (nextPage: number) => {
     const nextSearchParams = new URLSearchParams(searchParamsKey);
     nextSearchParams.set("page", String(nextPage));
@@ -155,6 +211,15 @@ function EmployeesPageContent() {
   return (
     <section className="w-full rounded-2xl border border-black/10 bg-surface p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Employees</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Employee Directory</h1>
+        <Link
+          href="/employees/new"
+          className={primaryButtonClassName}
+        >
+          Create employee
+        </Link>
+      </div>
       <EmployeeFilters
         values={filterValues}
         onChange={setFilterValues}
@@ -174,6 +239,9 @@ function EmployeesPageContent() {
                       {column.label}
                     </th>
                   ))}
+                  <th scope="col" className="font-medium">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -197,6 +265,23 @@ function EmployeesPageContent() {
                         )}
                       </td>
                     ))}
+                    <td className={detailCellClassName}>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/employees/${employee.employeeCode}/edit`}
+                          className={`${subtleTextButtonClassName} text-black/70 hover:text-black`}
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(employee.employeeCode)}
+                          className={`${subtleTextButtonClassName} text-red-700`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -242,6 +327,16 @@ function EmployeesPageContent() {
           ) : null}
         </>
       )}
+      <ConfirmDialog
+        open={Boolean(deleteTargetCode)}
+        title="Delete employee"
+        description="This will remove the employee from active records. You can continue or cancel."
+        confirmLabel="Delete"
+        errorMessage={deleteErrorMessage}
+        busy={isDeletingEmployee}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </section>
   );
 }

@@ -23,10 +23,13 @@ type EmployeeDetailResult =
   | { kind: "not-found" }
   | { kind: "error" }
 
-const { pushMock, getRefreshTokenMock, getEmployeeByCodeMock } = vi.hoisted(() => ({
+type DeleteEmployeeResult = { kind: "deleted" } | { kind: "not-found" } | { kind: "error" }
+
+const { pushMock, getRefreshTokenMock, getEmployeeByCodeMock, deleteEmployeeByCodeMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),
   getRefreshTokenMock: vi.fn<() => string | null>(),
   getEmployeeByCodeMock: vi.fn<(employeeCode: string) => Promise<EmployeeDetailResult>>(),
+  deleteEmployeeByCodeMock: vi.fn<(employeeCode: string) => Promise<DeleteEmployeeResult>>(),
 }))
 
 const createDeferred = <T,>() => {
@@ -56,6 +59,7 @@ vi.mock("../../lib/auth/token-store", () => ({
 
 vi.mock("../../lib/api/employees-client", () => ({
   getEmployeeByCode: getEmployeeByCodeMock,
+  deleteEmployeeByCode: deleteEmployeeByCodeMock,
 }))
 
 describe("Employee detail page", () => {
@@ -268,5 +272,68 @@ describe("Employee detail page", () => {
     })
 
     expect(await screen.findByRole("heading", { name: "Ada Lovelace" })).toBeVisible()
+  })
+
+  it("opens a delete dialog and aborts when user cancels", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    getEmployeeByCodeMock.mockResolvedValueOnce({
+      kind: "found",
+      employee: {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    })
+
+    render(<EmployeeDetailPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /delete employee/i }))
+    fireEvent.click(await screen.findByRole("button", { name: /cancel/i }))
+
+    expect(deleteEmployeeByCodeMock).not.toHaveBeenCalled()
+  })
+
+  it("soft deletes employee and navigates to employees list on success", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    getEmployeeByCodeMock.mockResolvedValueOnce({
+      kind: "found",
+      employee: {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    })
+    deleteEmployeeByCodeMock.mockResolvedValueOnce({ kind: "deleted" })
+
+    render(<EmployeeDetailPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /delete employee/i }))
+    fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }))
+
+    await waitFor(() => {
+      expect(deleteEmployeeByCodeMock).toHaveBeenCalledWith("EMP-0001")
+    })
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith("/employees")
+    })
+  })
+
+  it("renders not-found fallback when soft delete returns 404", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+    getEmployeeByCodeMock.mockResolvedValueOnce({
+      kind: "found",
+      employee: {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    })
+    deleteEmployeeByCodeMock.mockResolvedValueOnce({ kind: "not-found" })
+
+    render(<EmployeeDetailPage />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /delete employee/i }))
+    fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }))
+
+    expect(await screen.findByRole("heading", { name: /employee not found/i })).toBeVisible()
+    expect(screen.getByRole("link", { name: /return to employee list/i })).toHaveAttribute("href", "/employees")
   })
 })

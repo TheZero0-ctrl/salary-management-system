@@ -567,3 +567,52 @@
 - Simplified detail page async flow with reusable loader/retry callbacks and clearer state naming in `frontend/src/app/(workspace)/employees/[employee_code]/page.tsx`.
 - Reduced repetitive detail metadata markup by rendering from metadata item arrays while preserving labels/order and fallbacks.
 - Kept backward-compat handling in employees page for legacy array-shaped list mock responses to avoid brittle test/runtime transitions.
+
+## Step 10 - feat(frontend):  employee create/edit/delete workflows with inline validation and UX polish
+
+### RED (tests first)
+- Added failing workflow specs for create/edit/delete coverage and API mutation contracts:
+  - `frontend/src/app/__tests__/employee-create-page.test.tsx`
+  - `frontend/src/app/__tests__/employee-edit-page.test.tsx`
+  - `frontend/src/app/__tests__/employee-detail-page.test.tsx`
+  - `frontend/src/lib/api/__tests__/employees-client.test.ts`
+- Expanded list and nav behavior specs for user entry points and route-state UX:
+  - `frontend/src/app/__tests__/employees-page.test.tsx`
+  - `frontend/src/components/auth/__tests__/primary-nav.test.tsx`
+- Defined expected behavior for:
+  - create submit success, `422` field mapping, and `409` duplicate employee code messaging
+  - edit prefill + update success and failure states
+  - delete from detail/list with confirmation UI and `404` fallback behavior
+  - employees list action visibility (`Create`, row `Edit`/`Delete`) and route-linking
+  - nav highlight rule where Employees is active only on `/employees`
+
+### GREEN (minimum implementation)
+- Implemented create page route + submission flow:
+  - `frontend/src/app/(workspace)/employees/new/page.tsx`
+- Implemented edit page route + prefill/update flow:
+  - `frontend/src/app/(workspace)/employees/[employee_code]/edit/page.tsx`
+- Implemented delete interactions and post-delete consistency:
+  - `frontend/src/app/(workspace)/employees/[employee_code]/page.tsx`
+  - `frontend/src/app/(workspace)/employees/page.tsx`
+- Added reusable employee form component and shared confirmation modal:
+  - `frontend/src/app/(workspace)/employees/employee-form.tsx`
+  - `frontend/src/components/employees/confirm-dialog.tsx`
+- Added and wired mutation APIs for create/update/delete with typed outcomes:
+  - `frontend/src/lib/api/employees-client.ts`
+  - create/update `422` -> field errors
+  - create/update `409` -> duplicate employee code message
+  - delete/update `404` outcomes
+
+### REFACTOR
+- Extracted shared employee form validation and normalization for inline client-side checks:
+  - `frontend/src/lib/employees/employee-form-validation.ts`
+  - enforced frontend rules aligned with backend constraints (code format, required fields, enums, date consistency)
+- Improved form quality and clarity for production usage:
+  - expanded create/edit fields (job title, country, employment type, salary, status, effective/hire/review dates)
+  - clearer salary semantics (`Salary (USD annual)` + helper text)
+  - submit pending-state handling to prevent duplicate submissions
+- Standardized button styling via shared UI style tokens:
+  - `frontend/src/components/ui/button-styles.ts`
+  - applied across form actions, filters, list actions, and confirmation dialogs
+- Preserved previous pagination button appearance per UX preference while keeping other actions standardized:
+  - `frontend/src/app/(workspace)/employees/page.tsx`

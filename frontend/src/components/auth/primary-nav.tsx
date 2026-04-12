@@ -26,7 +26,7 @@ const PrimaryNav = ({ showWorkspaceLinks = false }: PrimaryNavProps) => {
   )
 
   const shouldShowWorkspaceLinks = showWorkspaceLinks || isAuthenticated
-  const isEmployeesActive = Boolean(pathname?.startsWith("/employees"))
+  const isEmployeesActive = pathname === "/employees"
   const isInsightsActive = Boolean(pathname?.startsWith("/insights"))
 
   const navLinkClassName = (isActive: boolean) =>

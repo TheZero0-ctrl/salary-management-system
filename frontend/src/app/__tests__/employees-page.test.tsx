@@ -15,11 +15,12 @@ type EmployeeListItem = {
   effectiveFrom?: string
 }
 
-const { pushMock, useSearchParamsMock, getRefreshTokenMock, listEmployeesMock } = vi.hoisted(() => ({
+const { pushMock, useSearchParamsMock, getRefreshTokenMock, listEmployeesMock, deleteEmployeeByCodeMock } = vi.hoisted(() => ({
   pushMock: vi.fn<(href: string) => void>(),
   useSearchParamsMock: vi.fn<() => URLSearchParams>(() => new URLSearchParams()),
   getRefreshTokenMock: vi.fn<() => string | null>(),
   listEmployeesMock: vi.fn<() => Promise<Array<EmployeeListItem>>>(),
+  deleteEmployeeByCodeMock: vi.fn<(employeeCode: string) => Promise<{ kind: "deleted" | "not-found" | "error" }>>(),
 }))
 
 const createDeferred = <T,>() => {
@@ -47,6 +48,7 @@ vi.mock("../../lib/auth/token-store", () => ({
 
 vi.mock("../../lib/api/employees-client", () => ({
   listEmployees: listEmployeesMock,
+  deleteEmployeeByCode: deleteEmployeeByCodeMock,
 }))
 
 describe("Employees page", () => {
@@ -73,6 +75,15 @@ describe("Employees page", () => {
 
     expect(pushMock).not.toHaveBeenCalled()
     expect(screen.getByRole("heading", { name: "Employee Directory" })).toBeInTheDocument()
+  })
+
+  it("shows a create employee button linking to create page", () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+
+    render(<EmployeesPage />)
+
+    const createLink = screen.getByRole("link", { name: /create employee/i })
+    expect(createLink).toHaveAttribute("href", "/employees/new")
   })
 
   it("shows loading first and then renders employee name and code after data resolves", async () => {
@@ -146,6 +157,27 @@ describe("Employees page", () => {
     const employeeLink = screen.getByRole("link", { name: "Ada Lovelace" })
 
     expect(employeeLink).toHaveAttribute("href", "/employees/EMP-0001")
+  })
+
+  it("renders edit and delete actions for each employee row", async () => {
+    getRefreshTokenMock.mockReturnValue("refresh-token")
+
+    const employeesDeferred = createDeferred<Array<EmployeeListItem>>()
+    listEmployeesMock.mockReturnValueOnce(employeesDeferred.promise)
+
+    render(<EmployeesPage />)
+
+    employeesDeferred.resolve([
+      {
+        fullName: "Ada Lovelace",
+        employeeCode: "EMP-0001",
+      },
+    ])
+
+    await waitForElementToBeRemoved(() => screen.queryByText(/loading employees/i))
+
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/employees/EMP-0001/edit")
+    expect(screen.getByRole("button", { name: "Delete" })).toBeVisible()
   })
 
   it("renders only primary business columns and one employee row after loading", async () => {

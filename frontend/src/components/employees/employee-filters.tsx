@@ -1,5 +1,6 @@
-import { type FormEvent } from "react";
+import { type SubmitEvent } from "react";
 import type { EmployeeFilterValues } from "../../lib/employees/filters";
+import { primaryButtonClassName, secondaryButtonClassName } from "../ui/button-styles";
 
 type EmployeeFiltersProps = {
   values: EmployeeFilterValues;
@@ -9,7 +10,7 @@ type EmployeeFiltersProps = {
 };
 
 export const EmployeeFilters = ({ values, onChange, onSubmit, onClear }: EmployeeFiltersProps) => {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit();
   };
@@ -81,13 +82,13 @@ export const EmployeeFilters = ({ values, onChange, onSubmit, onClear }: Employe
         <button
           type="button"
           onClick={onClear}
-          className="h-10 rounded-lg border border-black/15 px-4 text-sm font-medium text-foreground hover:bg-black/[0.03]"
+          className={secondaryButtonClassName}
         >
           Clear filters
         </button>
         <button
           type="submit"
-          className="h-10 rounded-lg bg-black px-4 text-sm font-medium text-white hover:bg-black/85"
+          className={primaryButtonClassName}
         >
           Search
         </button>

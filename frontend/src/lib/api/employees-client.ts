@@ -45,8 +45,50 @@ type EmployeeDetailResponse = {
   data?: EmployeeApiItem;
 };
 
+type EmployeeMutationApiError = {
+  field?: string;
+  message?: string;
+  code?: string;
+};
+
+type EmployeeMutationErrorResponse = {
+  errors?: EmployeeMutationApiError[];
+};
+
 export type GetEmployeeByCodeResult =
   | { kind: "found"; employee: EmployeeListItem }
+  | { kind: "not-found" }
+  | { kind: "error" };
+
+export type EmployeeMutationPayload = {
+  fullName?: string;
+  employeeCode?: string;
+  jobTitle?: string;
+  country?: string;
+  department?: string;
+  employmentType?: string;
+  salary?: string | number;
+  status?: string;
+  effectiveFrom?: string;
+  hireDate?: string;
+  lastSalaryReviewDate?: string;
+};
+
+export type CreateEmployeeResult =
+  | { kind: "created"; employeeCode: string }
+  | { kind: "validation-error"; fieldErrors: Record<string, string> }
+  | { kind: "duplicate-employee-code"; message: string }
+  | { kind: "error" };
+
+export type UpdateEmployeeResult =
+  | { kind: "updated" }
+  | { kind: "validation-error"; fieldErrors: Record<string, string> }
+  | { kind: "duplicate-employee-code"; message: string }
+  | { kind: "not-found" }
+  | { kind: "error" };
+
+export type DeleteEmployeeResult =
+  | { kind: "deleted" }
   | { kind: "not-found" }
   | { kind: "error" };
 
@@ -111,6 +153,45 @@ const toEmployeeListItem = (employee: EmployeeApiItem): EmployeeListItem => ({
   lastSalaryReviewDate: employee.last_salary_review_date ?? undefined,
 });
 
+const toEmployeeMutationApiPayload = (payload: EmployeeMutationPayload) => {
+  const entries: Array<[string, unknown]> = [
+    ["full_name", payload.fullName],
+    ["employee_code", payload.employeeCode],
+    ["job_title", payload.jobTitle],
+    ["country_code", payload.country],
+    ["department", payload.department],
+    ["employment_type", payload.employmentType],
+    ["salary", payload.salary],
+    ["status", payload.status],
+    ["effective_from", payload.effectiveFrom],
+    ["hire_date", payload.hireDate],
+    ["last_salary_review_date", payload.lastSalaryReviewDate],
+  ];
+
+  return Object.fromEntries(entries.filter(([, value]) => value !== undefined));
+};
+
+const fieldKeyToCamelCase = (field: string) =>
+  field.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
+
+const readEmployeeDetail = async (response: Response): Promise<EmployeeApiItem | undefined> => {
+  try {
+    const body = (await response.json()) as EmployeeDetailResponse;
+    return body.data;
+  } catch {
+    return undefined;
+  }
+};
+
+const readMutationErrors = async (response: Response) => {
+  try {
+    const body = (await response.json()) as EmployeeMutationErrorResponse;
+    return body.errors ?? [];
+  } catch {
+    return [];
+  }
+};
+
 export const listEmployees = async (query?: ListEmployeesQuery): Promise<ListEmployeesResult> => {
   const params = new URLSearchParams();
 
@@ -173,4 +254,109 @@ export const getEmployeeByCode = async (
     kind: "found",
     employee: toEmployeeListItem(employee),
   };
+};
+
+export const createEmployee = async (payload: EmployeeMutationPayload): Promise<CreateEmployeeResult> => {
+  const url = `${getBackendApiBaseUrl()}/api/v1/employees`;
+  const response = await authorizedFetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      employee: toEmployeeMutationApiPayload(payload),
+    }),
+  });
+
+  if (response.ok) {
+    const employee = await readEmployeeDetail(response);
+
+    return {
+      kind: "created",
+      employeeCode: employee?.employee_code ?? payload.employeeCode ?? "",
+    };
+  }
+
+  const errors = await readMutationErrors(response);
+
+  if (response.status === 422) {
+    const fieldErrors = Object.fromEntries(
+      errors
+        .filter((error) => typeof error.field === "string" && typeof error.message === "string")
+        .map((error) => [fieldKeyToCamelCase(error.field as string), error.message as string]),
+    );
+
+    return { kind: "validation-error", fieldErrors };
+  }
+
+  if (response.status === 409) {
+    return {
+      kind: "duplicate-employee-code",
+      message: errors.find((error) => typeof error.message === "string")?.message ?? "Employee code has already been taken",
+    };
+  }
+
+  return { kind: "error" };
+};
+
+export const updateEmployee = async (
+  employeeCode: string,
+  payload: EmployeeMutationPayload,
+): Promise<UpdateEmployeeResult> => {
+  const url = `${getBackendApiBaseUrl()}/api/v1/employees/${employeeCode}`;
+  const response = await authorizedFetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      employee: toEmployeeMutationApiPayload(payload),
+    }),
+  });
+
+  if (response.ok) {
+    return { kind: "updated" };
+  }
+
+  const errors = await readMutationErrors(response);
+
+  if (response.status === 422) {
+    const fieldErrors = Object.fromEntries(
+      errors
+        .filter((error) => typeof error.field === "string" && typeof error.message === "string")
+        .map((error) => [fieldKeyToCamelCase(error.field as string), error.message as string]),
+    );
+
+    return { kind: "validation-error", fieldErrors };
+  }
+
+  if (response.status === 409) {
+    return {
+      kind: "duplicate-employee-code",
+      message: errors.find((error) => typeof error.message === "string")?.message ?? "Employee code has already been taken",
+    };
+  }
+
+  if (response.status === 404) {
+    return { kind: "not-found" };
+  }
+
+  return { kind: "error" };
+};
+
+export const deleteEmployeeByCode = async (employeeCode: string): Promise<DeleteEmployeeResult> => {
+  const url = `${getBackendApiBaseUrl()}/api/v1/employees/${employeeCode}`;
+  const response = await authorizedFetch(url, {
+    method: "DELETE",
+  });
+
+  if (response.ok) {
+    return { kind: "deleted" };
+  }
+
+  if (response.status === 404) {
+    return { kind: "not-found" };
+  }
+
+  return { kind: "error" };
 };

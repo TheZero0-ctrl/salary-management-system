@@ -219,3 +219,326 @@ describe("getEmployeeByCode detail mapping", () => {
     expect(result).toEqual({ kind: "error" })
   })
 })
+
+describe("createEmployee mutation mapping", () => {
+  const backendBaseUrl = "http://backend.test"
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+
+    baseUrlMocks.getBackendApiBaseUrl.mockReturnValue(backendBaseUrl)
+  })
+
+  it("posts snake_case payload to create employee endpoint", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        data: {
+          full_name: "Ada Lovelace",
+          employee_code: "EMP-0001",
+        },
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      createEmployee: (payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    await employeesClient.createEmployee({
+      fullName: "Ada Lovelace",
+      employeeCode: "EMP-0001",
+      jobTitle: "Staff Engineer",
+      country: "IN",
+      department: "Engineering",
+      employmentType: "full_time",
+      salary: 175000,
+      status: "active",
+      effectiveFrom: "2026-01-01",
+      hireDate: "2024-04-01",
+      lastSalaryReviewDate: "2025-12-15",
+    })
+
+    expect(authClientMocks.authorizedFetch).toHaveBeenCalledWith(
+      `${backendBaseUrl}/api/v1/employees`,
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          employee: {
+            full_name: "Ada Lovelace",
+            employee_code: "EMP-0001",
+            job_title: "Staff Engineer",
+            country_code: "IN",
+            department: "Engineering",
+            employment_type: "full_time",
+            salary: 175000,
+            status: "active",
+            effective_from: "2026-01-01",
+            hire_date: "2024-04-01",
+            last_salary_review_date: "2025-12-15",
+          },
+        }),
+      }),
+    )
+  })
+
+  it("returns field-level validation errors for 422 create response", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        errors: [
+          {
+            field: "full_name",
+            message: "can't be blank",
+          },
+          {
+            field: "salary",
+            message: "must be greater than 0",
+          },
+        ],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      createEmployee: (payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.createEmployee({
+      fullName: "",
+      employeeCode: "EMP-0001",
+    })
+
+    expect(result).toEqual({
+      kind: "validation-error",
+      fieldErrors: {
+        fullName: "can't be blank",
+        salary: "must be greater than 0",
+      },
+    })
+  })
+
+  it("returns duplicate-code outcome for 409 create response", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        errors: [
+          {
+            code: "EMPLOYEE_CODE_TAKEN",
+            message: "Employee code has already been taken",
+          },
+        ],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      createEmployee: (payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.createEmployee({
+      fullName: "Ada Lovelace",
+      employeeCode: "EMP-0001",
+    })
+
+    expect(result).toEqual({
+      kind: "duplicate-employee-code",
+      message: "Employee code has already been taken",
+    })
+  })
+})
+
+describe("updateEmployee mutation mapping", () => {
+  const backendBaseUrl = "http://backend.test"
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+
+    baseUrlMocks.getBackendApiBaseUrl.mockReturnValue(backendBaseUrl)
+  })
+
+  it("patches employee endpoint with mapped snake_case payload", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          full_name: "Ada Lovelace",
+          employee_code: "EMP-0001",
+        },
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      updateEmployee: (employeeCode: string, payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    await employeesClient.updateEmployee("EMP-0001", {
+      fullName: "Ada Lovelace",
+      department: "Platform",
+      status: "active",
+    })
+
+    expect(authClientMocks.authorizedFetch).toHaveBeenCalledWith(
+      `${backendBaseUrl}/api/v1/employees/EMP-0001`,
+      expect.objectContaining({
+        method: "PATCH",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          employee: {
+            full_name: "Ada Lovelace",
+            department: "Platform",
+            status: "active",
+          },
+        }),
+      }),
+    )
+  })
+
+  it("returns not-found outcome for 404 update response", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({
+        errors: [{ code: "EMPLOYEE_NOT_FOUND" }],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      updateEmployee: (employeeCode: string, payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.updateEmployee("EMP-9999", {
+      fullName: "Ada Lovelace",
+    })
+
+    expect(result).toEqual({ kind: "not-found" })
+  })
+
+  it("returns generic error outcome for non-404 update failures", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({
+        errors: [{ code: "INTERNAL_SERVER_ERROR" }],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      updateEmployee: (employeeCode: string, payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.updateEmployee("EMP-0001", {
+      fullName: "Ada Lovelace",
+    })
+
+    expect(result).toEqual({ kind: "error" })
+  })
+
+  it("maps 422 update response to validation-error with camelCase fields", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        errors: [
+          { field: "full_name", message: "can't be blank" },
+          { field: "salary", message: "must be greater than 0" },
+        ],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      updateEmployee: (employeeCode: string, payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.updateEmployee("EMP-0001", {
+      fullName: "",
+    })
+
+    expect(result).toEqual({
+      kind: "validation-error",
+      fieldErrors: {
+        fullName: "can't be blank",
+        salary: "must be greater than 0",
+      },
+    })
+  })
+
+  it("maps 409 update response to duplicate-employee-code outcome", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        errors: [{ message: "Employee code has already been taken" }],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      updateEmployee: (employeeCode: string, payload: Record<string, unknown>) => Promise<unknown>
+    }
+
+    const result = await employeesClient.updateEmployee("EMP-0001", {
+      employeeCode: "EMP-0002",
+    })
+
+    expect(result).toEqual({
+      kind: "duplicate-employee-code",
+      message: "Employee code has already been taken",
+    })
+  })
+})
+
+describe("deleteEmployeeByCode mutation mapping", () => {
+  const backendBaseUrl = "http://backend.test"
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+
+    baseUrlMocks.getBackendApiBaseUrl.mockReturnValue(backendBaseUrl)
+  })
+
+  it("sends DELETE request to employee endpoint", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => ({}),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      deleteEmployeeByCode: (employeeCode: string) => Promise<unknown>
+    }
+
+    await employeesClient.deleteEmployeeByCode("EMP-0001")
+
+    expect(authClientMocks.authorizedFetch).toHaveBeenCalledWith(
+      `${backendBaseUrl}/api/v1/employees/EMP-0001`,
+      expect.objectContaining({ method: "DELETE" }),
+    )
+  })
+
+  it("returns not-found outcome for 404 delete response", async () => {
+    authClientMocks.authorizedFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({
+        errors: [{ code: "EMPLOYEE_NOT_FOUND" }],
+      }),
+    })
+
+    const employeesClient = (await loadEmployeesClient()) as {
+      deleteEmployeeByCode: (employeeCode: string) => Promise<unknown>
+    }
+
+    const result = await employeesClient.deleteEmployeeByCode("EMP-9999")
+
+    expect(result).toEqual({ kind: "not-found" })
+  })
+})

@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-import { getEmployeeByCode, type GetEmployeeByCodeResult } from "../../../../lib/api/employees-client";
+import { deleteEmployeeByCode, getEmployeeByCode, type GetEmployeeByCodeResult } from "../../../../lib/api/employees-client";
 import { useProtectedRoute } from "../../../../lib/auth/use-protected-route";
 import { getRefreshToken } from "../../../../lib/auth/token-store";
+import { ConfirmDialog } from "../../../../components/employees/confirm-dialog";
+import { dangerButtonClassName, secondaryButtonClassName } from "../../../../components/ui/button-styles";
 
 const displayValue = (value?: string) => value ?? "--";
-
 const formatSalary = (salary?: string | number) => {
   if (salary === undefined) {
     return "--";
@@ -28,11 +29,15 @@ const formatSalary = (salary?: string | number) => {
 
 export default function EmployeeDetailPage() {
   useProtectedRoute();
+  const router = useRouter();
   const routeParams = useParams<{ employee_code?: string }>();
   const employeeCode = routeParams?.employee_code ?? "";
 
   const [isLoading, setIsLoading] = useState(true);
   const [employeeResult, setEmployeeResult] = useState<GetEmployeeByCodeResult | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
   const sectionClassName = "w-full rounded-2xl border border-black/10 bg-surface p-6 sm:p-8";
 
   const loadEmployeeDetail = useCallback(async () => {
@@ -55,6 +60,29 @@ export default function EmployeeDetailPage() {
   const handleRetry = useCallback(() => {
     void loadEmployeeDetail();
   }, [loadEmployeeDetail]);
+
+  const handleDeleteEmployee = useCallback(async () => {
+    setIsDeletingEmployee(true);
+    setDeleteErrorMessage(null);
+
+    try {
+      const result = await deleteEmployeeByCode(employeeCode);
+
+      if (result.kind === "deleted") {
+        router.push("/employees");
+        return;
+      }
+
+      if (result.kind === "not-found") {
+        setEmployeeResult({ kind: "not-found" });
+        return;
+      }
+
+      setDeleteErrorMessage("Unable to delete employee");
+    } finally {
+      setIsDeletingEmployee(false);
+    }
+  }, [employeeCode, router]);
 
   const notFoundContent = (
     <>
@@ -105,33 +133,67 @@ export default function EmployeeDetailPage() {
     ];
 
     return (
-      <section className={sectionClassName}>
-        <h1 className="text-2xl font-semibold tracking-tight">{employee.fullName}</h1>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <section className="rounded-xl border border-black/10 bg-white/30 p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Profile</h2>
-            <dl className="mt-4 space-y-3 text-sm">
-              {profileItems.map(({ label, value }) => (
-                <div key={label}>
-                  <dt className="text-muted">{label}</dt>
-                  <dd className="font-medium text-foreground">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-          <section className="rounded-xl border border-black/10 bg-white/30 p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Compensation</h2>
-            <dl className="mt-4 space-y-3 text-sm">
-              {compensationItems.map(({ label, value }) => (
-                <div key={label}>
-                  <dt className="text-muted">{label}</dt>
-                  <dd className="font-medium text-foreground">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        </div>
-      </section>
+      <>
+        <section className={sectionClassName}>
+          <h1 className="text-2xl font-semibold tracking-tight">{employee.fullName}</h1>
+          <div className="mt-4 flex items-center gap-2">
+            <Link
+              href={`/employees/${employee.employeeCode}/edit`}
+              className={secondaryButtonClassName}
+            >
+              Edit employee
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className={dangerButtonClassName}
+            >
+              Delete employee
+            </button>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <section className="rounded-xl border border-black/10 bg-white/30 p-4">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Profile</h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                {profileItems.map(({ label, value }) => (
+                  <div key={label}>
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="font-medium text-foreground">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            <section className="rounded-xl border border-black/10 bg-white/30 p-4">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Compensation</h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                {compensationItems.map(({ label, value }) => (
+                  <div key={label}>
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="font-medium text-foreground">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          </div>
+        </section>
+        <ConfirmDialog
+          open={isDeleteDialogOpen}
+          title="Delete employee"
+          description="This action removes the employee from active records."
+          confirmLabel="Delete"
+          errorMessage={deleteErrorMessage}
+          busy={isDeletingEmployee}
+          onConfirm={handleDeleteEmployee}
+          onCancel={() => {
+            if (isDeletingEmployee) {
+              return;
+            }
+
+            setIsDeleteDialogOpen(false);
+            setDeleteErrorMessage(null);
+          }}
+        />
+      </>
     );
   }
 
@@ -143,7 +205,7 @@ export default function EmployeeDetailPage() {
         <button
           type="button"
           onClick={handleRetry}
-          className="mt-4 inline-flex rounded-md border border-black/10 px-3 py-2 text-sm font-medium"
+          className={`mt-4 ${secondaryButtonClassName}`}
         >
           Retry
         </button>
@@ -151,7 +213,5 @@ export default function EmployeeDetailPage() {
     );
   }
 
-  return (
-    <section className={sectionClassName}>{notFoundContent}</section>
-  );
+  return <section className={sectionClassName}>{notFoundContent}</section>;
 }
