@@ -31,7 +31,7 @@ export const CountrySnapshotChart = ({ min, median, avg, max }: CountrySnapshotC
       </div>
       <p className="mt-1 text-xs text-muted">Read left to right: lowest, midpoint, average, and highest salaries.</p>
       <div className="mt-3 w-full overflow-x-auto">
-        <BarChart width={760} height={260} data={data} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
+        <BarChart width={760} height={260} data={data} margin={{ top: 8, right: 14, left: 0, bottom: 20 }}>
           <defs>
             <linearGradient id="countrySnapshotBar" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#1f2529" stopOpacity={0.95} />
@@ -39,7 +39,14 @@ export const CountrySnapshotChart = ({ min, median, avg, max }: CountrySnapshotC
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="4 4" stroke="rgba(31,37,41,0.12)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fill: "#5f6a72", fontSize: 12 }} axisLine={false} tickLine={false} label={{ value: "Metric", position: "insideBottom", dy: 10, fill: "#5f6a72", fontSize: 11 }} />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: "#5f6a72", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            height={44}
+            label={{ value: "Metric", position: "bottom", offset: 0, fill: "#5f6a72", fontSize: 11 }}
+          />
           <YAxis tickFormatter={formatCompact} tick={{ fill: "#5f6a72", fontSize: 12 }} axisLine={false} tickLine={false} />
           <Tooltip
             formatter={(value) => new Intl.NumberFormat("en-US").format(Number(value))}
