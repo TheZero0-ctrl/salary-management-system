@@ -14,7 +14,9 @@ Rails.application.routes.draw do
       resource :session, only: [ :create, :destroy ] do
         post :refresh, on: :collection
       end
-      resources :employees, only: [ :index, :show, :create, :update, :destroy ], param: :employee_code
+      resources :employees, only: [ :index, :show, :create, :update, :destroy ], param: :employee_code do
+        get :filter_options, on: :collection
+      end
 
       namespace :insights do
         get :countries, to: "countries#index"

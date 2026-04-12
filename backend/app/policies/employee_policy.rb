@@ -9,6 +9,7 @@ class EmployeePolicy < ApplicationPolicy
   alias_method :create?, :index?
   alias_method :update?, :index?
   alias_method :destroy?, :index?
+  alias_method :filter_options?, :index?
   alias_method :countries_insights?, :index?
   alias_method :segments_insights?, :index?
   alias_method :distributions_insights?, :index?

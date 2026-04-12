@@ -23,6 +23,14 @@ module Api
         }
       end
 
+      def filter_options
+        authorize! Employee
+
+        render json: {
+          data: Employees::FilterOptionsQuery.call
+        }
+      end
+
       def show
         authorize! @employee
 
