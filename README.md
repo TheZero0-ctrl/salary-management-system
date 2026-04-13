@@ -8,6 +8,7 @@ Monorepo for a salary management app with:
 
 - Frontend (Vercel free plan): [https://salary-management-system-nu.vercel.app/](https://salary-management-system-nu.vercel.app/)
 - Backend (Render free plan): [https://salary-management-system-nfq0.onrender.com/up](https://salary-management-system-nfq0.onrender.com/up)
+- Demo video: [https://www.loom.com/share/2b72e5654e514e569885ebf0252bf14e](https://www.loom.com/share/2b72e5654e514e569885ebf0252bf14e)
 - Demo login credentials:
   - Email: `hr_manager@example.com`
   - Password: `password123`
